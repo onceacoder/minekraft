@@ -36,12 +36,14 @@ const SPIKES = 5
 const DIAMOND = 6
 const WOOD = 7
 const LEAVES = 8
+const BONE = 9
 
 const MAT_DIRT = 0
 const MAT_STONE = 1
 const MAT_WOOD = 2
 const MAT_LEAVES = 3
-const MAT_SAVE = 4
+const MAT_BONE = 4
+const MAT_SAVE = 5
 
 const TITLE = 0
 const OPTIONS = 1
@@ -51,11 +53,11 @@ const VICTORY = 4
 const GAMEOVER = 5
 const SAVING = 6
 const LOADING = 7
+const DIFFICULTY = 8
 
 const PLAYER_SPEED = 80
 const DEMO_SPEED = 60
 const DEMO_DIAGONAL_SPEED = 42
-const ZOMBIE_SPEED = 35
 const INFINITY = 0
 const MUSIC_TEMPO = 130
 
@@ -65,6 +67,9 @@ const MUSIC_TEMPO = 130
 let gameState = TITLE
 let titleChoice = 0
 let optionChoice = 0
+let difficultyChoice = 0
+let diffZombieSpeedLevel = 3
+let diffZombieCountOffset = 0
 let selectedLevels = 1
 let selectedHealth = 5
 let demoMode = false
@@ -111,6 +116,7 @@ let invDirt = 0
 let invStone = 0
 let invWood = 0
 let invLeaves = 0
+let invBones = 0
 let selectedMat = MAT_DIRT
 let inventoryOpen = false
 
@@ -143,6 +149,14 @@ let loadChoicePos = 0
 let zombieRefs: Sprite[] = []
 let zombieModes: number[] = []
 
+// Arrays for skeleton tracking
+let skeletonRefs: Sprite[] = []
+let skeletonTargets: Sprite[] = []
+
+namespace SpriteKind {
+    export const Skeleton = SpriteKind.create()
+}
+
 // --------------------------------------------------------------------------
 // DYNAMIC TILEMAP BACKING
 // --------------------------------------------------------------------------
@@ -160,6 +174,7 @@ let spikesTile: Image = null
 let diamondTile: Image = null
 let woodTile: Image = null
 let leavesTile: Image = null
+let boneTile: Image = null
 let tileImages: Image[] = []
 
 // Pre-initialize basic tiles so rendering functions have valid image references.
@@ -228,6 +243,16 @@ let miniLeaves = img`
     7 6 7 7 6 7 7 7
     7 7 7 7 7 7 6 7
     . 7 7 7 7 7 7 .
+`
+let miniBone = img`
+    . . . . . . . .
+    . 1 1 . . 1 1 .
+    . 1 f 1 1 f 1 .
+    . 1 f f f f 1 .
+    . . 1 f f 1 . .
+    . 1 f f f f 1 .
+    . 1 f 1 1 f 1 .
+    . 1 1 . . 1 1 .
 `
 
 // Classic RPG Golden UI Pointers
@@ -526,6 +551,80 @@ let zAttack = img`
     . . . . . . . . . . . . . . . .
 `
 
+// Skeleton Animations (Bone Undead Chibi)
+let sIdle = img`
+    . . . . . . 1 1 1 1 . . . . . .
+    . . . . . 1 f f f f 1 . . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f 2 f f 2 f 1 . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 1 1 1 . . . . . . . .
+    . . . . 1 1 f f 1 1 . . . . . .
+    . . . . 1 f 1 f f 1 f 1 . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 f 1 1 f 1 . . . . . .
+    . . . . 1 f 1 1 f 1 . . . . . .
+    . . . . 1 f f . . f f 1 . . . .
+    . . . . 1 f . . . . f 1 . . . .
+    . . . . . . . . . . . . . . . .
+`
+let sWalk1 = img`
+    . . . . . . 1 1 1 1 . . . . . .
+    . . . . . 1 f f f f 1 . . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f 2 f f 2 f 1 . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 1 1 1 . . . . . . . .
+    . . . . 1 1 f f 1 1 . . . . . .
+    . . . . 1 f f 1 f f 1 f f 1 . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 f 1 1 f 1 . . . . . .
+    . . . . 1 f f 1 1 f . . . . . .
+    . . . . 1 f . . . f f 1 . . . .
+    . . . . . . . . . . f 1 . . . .
+    . . . . . . . . . . . . . . . .
+`
+let sWalk2 = img`
+    . . . . . . 1 1 1 1 . . . . . .
+    . . . . . 1 f f f f 1 . . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f 2 f f 2 f 1 . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 1 1 1 . . . . . . . .
+    . . . . 1 1 f f 1 1 . . . . . .
+    . . . . 1 f f 1 f f 1 f f 1 . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 f 1 1 f 1 . . . . . .
+    . . . . f 1 1 f f 1 . . . . . .
+    . . . . 1 f f . . . f 1 . . . .
+    . . . . 1 f . . . . . . . . . .
+    . . . . . . . . . . . . . . . .
+`
+let sAttack = img`
+    . . . . . . 1 1 1 1 . . . . . .
+    . . . . . 1 f f f f 1 . . . . .
+    . . . . 1 f 2 f f 2 f 1 . . . .
+    . . . . 1 f f f f f f 1 . . . .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 1 1 1 1 1 1 1 . . . .
+    . . . . 1 f 1 f f f f 1 f 1 . .
+    . . . . 1 f f f f f f f f f 1 .
+    . . . . 1 f f f f 1 . . . . . .
+    . . . . 1 f 1 1 f 1 . . . . . .
+    . . . . 1 f f 1 1 f f 1 . . . .
+    . . . . 1 f . . . . f 1 . . . .
+    . . . . . . . . . . . . . . . .
+    . . . . . . . . . . . . . . . .
+    . . . . . . . . . . . . . . . .
+    . . . . . . . . . . . . . . . .
+`
+
 // --------------------------------------------------------------------------
 // Core-API Safe Animation System
 // Bypasses the need for standard extensions to guarantee successful compile.
@@ -797,6 +896,20 @@ function makeLeaves(): Image {
     return im
 }
 
+function makeBone(): Image {
+    let im = makePattern(13, 1)
+    im.drawRect(0, 0, 16, 16, 15)
+    // Draw a small bone shape
+    im.setPixel(5, 5, 1)
+    im.setPixel(5, 6, 1)
+    im.setPixel(6, 5, 1)
+    im.drawLine(6, 6, 9, 9, 1)
+    im.setPixel(9, 10, 1)
+    im.setPixel(10, 9, 1)
+    im.setPixel(10, 10, 1)
+    return im
+}
+
 function initTiles() {
     grassTile = makeGrass()
     dirtTile = makeDirt()
@@ -807,9 +920,10 @@ function initTiles() {
     diamondTile = makeDiamond()
     woodTile = makeWood()
     leavesTile = makeLeaves()
+    boneTile = makeBone()
     tileImages = [
         grassTile, dirtTile, stoneTile, bedrockTile,
-        dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile
+        dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile
     ]
 }
 
@@ -909,10 +1023,14 @@ function playTunePart(tune: string[], start: number, tempo: number) {
     )
 }
 
-function playGeneratedTune(tune: string[]) {
+function playGeneratedTune(tune: string[], token: number) {
+    if (musicToken != token) return
     playTunePart(tune, 0, MUSIC_TEMPO)
+    if (musicToken != token) return
     playTunePart(tune, 8, MUSIC_TEMPO)
+    if (musicToken != token) return
     playTunePart(tune, 16, MUSIC_TEMPO)
+    if (musicToken != token) return
     playTunePart(tune, 24, MUSIC_TEMPO)
 }
 
@@ -925,7 +1043,7 @@ function playLevelMusic() {
 
     control.runInParallel(function () {
         while (gameState == PLAYING && myToken == musicToken) {
-            playGeneratedTune(tune)
+            playGeneratedTune(tune, myToken)
             pause(10)
         }
     })
@@ -1065,6 +1183,12 @@ function generateWorld() {
         else rawSetTile(bx, by, STONE)
     }
 
+    for (let i3 = 0; i3 < 85 + level * 3; i3++) {
+        let bx = randint(4, MAP_W - 5)
+        let by = randint(18, MAP_H - 6)
+        rawSetTile(bx, by, BONE)
+    }
+
     for (let cluster = 0; cluster < 18; cluster++) {
         let cx = randint(6, MAP_W - 7)
         let cy = randint(20, MAP_H - 8)
@@ -1115,6 +1239,10 @@ function generateWorld() {
 }
 
 // --------------------------------------------------------------------------
+function getZombieSpeed(): number {
+    return 15 + (diffZombieSpeedLevel - 1) * 10
+}
+
 // Memory-safe Zombie Array Tracking
 // --------------------------------------------------------------------------
 function zombieIndex(zombie: Sprite): number {
@@ -1154,16 +1282,193 @@ function setZombieMode(zombie: Sprite, mode: number) {
     stopCoreAnimation(zombie)
 
     if (mode == 0) {
-        zombie.follow(player, ZOMBIE_SPEED)
+        zombie.follow(player, getZombieSpeed())
         playCoreAnimation(zombie, [zWalk1, zIdle, zWalk2, zIdle], 150, true)
     } else if (mode == 1) {
-        zombie.follow(player, ZOMBIE_SPEED + 10)
+        zombie.follow(player, getZombieSpeed() + 10)
         playCoreAnimation(zombie, [zAttack, zIdle], 120, true)
     } else {
         zombie.follow(player, 0)
         zombie.vx = 0
         zombie.vy = 0
         zombie.setImage(zIdle)
+    }
+}
+
+// Memory-safe Skeleton Tracking & Dijkstra
+// --------------------------------------------------------------------------
+function skeletonIndex(skel: Sprite): number {
+    for (let i = 0; i < skeletonRefs.length; i++) {
+        if (skeletonRefs[i] == skel) return i
+    }
+    return -1
+}
+
+function forgetSkeleton(skel: Sprite) {
+    let idx = skeletonIndex(skel)
+    if (idx >= 0) {
+        skeletonRefs.splice(idx, 1)
+        skeletonTargets.splice(idx, 1)
+    }
+    stopCoreAnimation(skel)
+}
+
+function getGridDist(x1: number, y1: number, x2: number, y2: number): number {
+    return Math.abs(x1 - x2) + Math.abs(y1 - y2)
+}
+
+function updateSkeletonTargeting() {
+    let zombies = sprites.allOfKind(SpriteKind.Enemy)
+    if (zombies.length == 0) {
+        for (let i = 0; i < skeletonRefs.length; i++) {
+            skeletonTargets[i] = null
+            skeletonRefs[i].vx = 0
+            skeletonRefs[i].vy = 0
+            playCoreAnimation(skeletonRefs[i], [sIdle], 150, true)
+        }
+        return
+    }
+
+    let targeted: Sprite[] = []
+    for (let i = skeletonRefs.length - 1; i >= 0; i--) {
+        let skel = skeletonRefs[i]
+        let bestTarget: Sprite = null
+        let bestDist = 9999
+        let bestUntargeted: Sprite = null
+        let bestUntargetedDist = 9999
+
+        let sx = Math.floor(skel.x / TILE)
+        let sy = Math.floor(skel.y / TILE)
+
+        for (let z of zombies) {
+            let zx = Math.floor(z.x / TILE)
+            let zy = Math.floor(z.y / TILE)
+            let d = getGridDist(sx, sy, zx, zy)
+
+            if (d < bestDist) {
+                bestDist = d
+                bestTarget = z
+            }
+            if (targeted.indexOf(z) < 0 && d < bestUntargetedDist) {
+                bestUntargetedDist = d
+                bestUntargeted = z
+            }
+        }
+
+        if (bestUntargeted != null) {
+            skeletonTargets[i] = bestUntargeted
+            targeted.push(bestUntargeted)
+        } else {
+            skeletonTargets[i] = bestTarget
+        }
+    }
+}
+
+function spawnSkeleton(col: number, row: number) {
+    let skel = sprites.create(sIdle, SpriteKind.Skeleton)
+    tiles.placeOnTile(skel, tiles.getTileLocation(col, row))
+    skel.z = 10
+    skeletonRefs.push(skel)
+    skeletonTargets.push(null)
+    playCoreAnimation(skel, [sIdle], 150, true)
+    updateSkeletonTargeting()
+}
+
+let pathUpdateCounter = 0
+function tickSkeletons() {
+    if (gameState != PLAYING) return
+    pathUpdateCounter++
+    let doPathing = (pathUpdateCounter % 15 == 0)
+
+    let needsRetarget = false
+    for (let i = 0; i < skeletonTargets.length; i++) {
+        let t = skeletonTargets[i]
+        if (!t || (t.flags & sprites.Flag.Destroyed)) {
+            needsRetarget = true
+            break
+        }
+    }
+    if (needsRetarget) updateSkeletonTargeting()
+
+    for (let i = 0; i < skeletonRefs.length; i++) {
+        let skel = skeletonRefs[i]
+        let target = skeletonTargets[i]
+
+        if (!target || (target.flags & sprites.Flag.Destroyed)) {
+            skel.vx = 0
+            skel.vy = 0
+            continue
+        }
+
+        let sx = Math.floor(skel.x / TILE)
+        let sy = Math.floor(skel.y / TILE)
+        let tx = Math.floor(target.x / TILE)
+        let ty = Math.floor(target.y / TILE)
+
+        if (doPathing) {
+            let qX = [tx]
+            let qY = [ty]
+            let visitedX = [tx]
+            let visitedY = [ty]
+            
+            let foundNext = false
+            let nextStepX = sx
+            let nextStepY = sy
+            
+            let head = 0
+            let iters = 0
+            while(head < qX.length && iters < 200) {
+                iters++
+                let cx = qX[head]
+                let cy = qY[head]
+                head++
+                
+                if (getGridDist(cx, cy, sx, sy) == 1) {
+                    nextStepX = cx
+                    nextStepY = cy
+                    foundNext = true
+                    break
+                }
+                
+                let dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]]
+                for(let d of dirs) {
+                    let nx = cx + d[0]
+                    let ny = cy + d[1]
+                    if (!isSolid(getTileId(nx, ny))) {
+                        let seen = false
+                        for(let v = 0; v < visitedX.length; v++) {
+                            if (visitedX[v] == nx && visitedY[v] == ny) { seen = true; break; }
+                        }
+                        if (!seen) {
+                            visitedX.push(nx)
+                            visitedY.push(ny)
+                            qX.push(nx)
+                            qY.push(ny)
+                        }
+                    }
+                }
+            }
+            
+            if (!foundNext) {
+                if (sx < tx && !isSolid(getTileId(sx + 1, sy))) nextStepX = sx + 1
+                else if (sx > tx && !isSolid(getTileId(sx - 1, sy))) nextStepX = sx - 1
+                else if (sy < ty && !isSolid(getTileId(sx, sy + 1))) nextStepY = sy + 1
+                else if (sy > ty && !isSolid(getTileId(sx, sy - 1))) nextStepY = sy - 1
+            }
+            
+            let walkSpeed = 40
+            if (nextStepX > sx) { skel.vx = walkSpeed; skel.vy = 0; }
+            else if (nextStepX < sx) { skel.vx = -walkSpeed; skel.vy = 0; }
+            else if (nextStepY > sy) { skel.vy = walkSpeed; skel.vx = 0; }
+            else if (nextStepY < sy) { skel.vy = -walkSpeed; skel.vx = 0; }
+            else { skel.vx = 0; skel.vy = 0; }
+            
+            if (skel.vx != 0 || skel.vy != 0) {
+                playCoreAnimation(skel, [sWalk1, sIdle, sWalk2, sIdle], 150, true)
+            } else {
+                playCoreAnimation(skel, [sIdle], 150, true)
+            }
+        }
     }
 }
 
@@ -1217,6 +1522,10 @@ function destroyLevelSprites() {
         stopCoreAnimation(e)
         e.destroy()
     }
+    for (let skel of sprites.allOfKind(SpriteKind.Skeleton)) {
+        stopCoreAnimation(skel)
+        skel.destroy()
+    }
     for (let f of sprites.allOfKind(SpriteKind.Food)) f.destroy()
 
     player = null
@@ -1224,6 +1533,8 @@ function destroyLevelSprites() {
     diamondMarker = null
     zombieRefs = []
     zombieModes = []
+    skeletonRefs = []
+    skeletonTargets = []
 
     // Safety clear for entire custom animation engine pipeline
     animSprites = []
@@ -1277,8 +1588,9 @@ function setupLevel() {
 
     createDiamondMarker()
 
-    maxZombies = 5 + level
-    if (maxZombies > 10) maxZombies = 10
+    maxZombies = 5 + level + diffZombieCountOffset
+    if (maxZombies < 0) maxZombies = 0
+    if (maxZombies > 15) maxZombies = 15
 
     invincible = false
     inventoryOpen = false
@@ -1309,6 +1621,7 @@ function startGame() {
     invStone = 0
     invWood = 0
     invLeaves = 0
+    invBones = 0
     selectedMat = MAT_DIRT
 
     if (demoMode) {
@@ -1397,21 +1710,23 @@ function updateTargetCursor() {
 // Resource and building logic (Smart Targeting Mechanics)
 // --------------------------------------------------------------------------
 function isHarvestable(id: number): boolean {
-    return id == DIRT || id == STONE || id == DIRT_WALL || id == SPIKES || id == WOOD || id == LEAVES
+    return id == DIRT || id == STONE || id == DIRT_WALL || id == SPIKES || id == WOOD || id == LEAVES || id == BONE
 }
 
 function matCount(): number {
     if (selectedMat == MAT_DIRT) return invDirt
     else if (selectedMat == MAT_STONE) return invStone
     else if (selectedMat == MAT_WOOD) return invWood
-    else return invLeaves
+    else if (selectedMat == MAT_LEAVES) return invLeaves
+    else return invBones
 }
 
 function selectedTile(): number {
     if (selectedMat == MAT_DIRT) return DIRT_WALL
     else if (selectedMat == MAT_STONE) return SPIKES
     else if (selectedMat == MAT_WOOD) return WOOD
-    else return LEAVES
+    else if (selectedMat == MAT_LEAVES) return LEAVES
+    else return BONE
 }
 
 function breakEffect(col: number, row: number) {
@@ -1434,6 +1749,9 @@ function buildBlock(col: number, row: number, dirX: number, dirY: number) {
     } else if (selectedMat == MAT_LEAVES) {
         invLeaves += -1
         setTile(col, row, LEAVES)
+    } else if (selectedMat == MAT_BONE) {
+        invBones += -1
+        spawnSkeleton(col, row)
     }
 
     playPlayerAttack(dirX, dirY)
@@ -1455,6 +1773,7 @@ function performTargetAction() {
         else if (frontId == STONE || frontId == SPIKES) invStone += 1
         else if (frontId == WOOD) invWood += 1
         else if (frontId == LEAVES) invLeaves += 1
+        else if (frontId == BONE) invBones += 1
 
         setTile(frontCol, frontRow, GRASS)
         playPlayerAttack(facingDx, facingDy)
@@ -2152,7 +2471,13 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == OPTIONS) {
         optionChoice += -1
-        if (optionChoice < 0) optionChoice = 3
+        if (optionChoice < 0) optionChoice = 4
+        return
+    }
+
+    if (gameState == DIFFICULTY) {
+        difficultyChoice += -1
+        if (difficultyChoice < 0) difficultyChoice = 1
         return
     }
 
@@ -2187,7 +2512,13 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == OPTIONS) {
         optionChoice += 1
-        if (optionChoice > 3) optionChoice = 0
+        if (optionChoice > 4) optionChoice = 0
+        return
+    }
+
+    if (gameState == DIFFICULTY) {
+        difficultyChoice += 1
+        if (difficultyChoice > 1) difficultyChoice = 0
         return
     }
 
@@ -2215,6 +2546,15 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (gameState == DIFFICULTY) {
+        if (difficultyChoice == 0) {
+            if (diffZombieSpeedLevel > 1) diffZombieSpeedLevel--
+        } else if (difficultyChoice == 1) {
+            if (diffZombieCountOffset > -5) diffZombieCountOffset--
+        }
+        return
+    }
+
     if (gameState == PLAYING && !demoMode && !inventoryOpen) {
         facingDx = -1
         facingDy = 0
@@ -2222,6 +2562,15 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (gameState == DIFFICULTY) {
+        if (difficultyChoice == 0) {
+            if (diffZombieSpeedLevel < 5) diffZombieSpeedLevel++
+        } else if (difficultyChoice == 1) {
+            if (diffZombieCountOffset < 5) diffZombieCountOffset++
+        }
+        return
+    }
+
     if (gameState == PLAYING && !demoMode && !inventoryOpen) {
         facingDx = 1
         facingDy = 0
@@ -2271,6 +2620,9 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
                 selectedHealth = 5
             }
         } else if (optionChoice == 3) {
+            gameState = DIFFICULTY
+            difficultyChoice = 0
+        } else if (optionChoice == 4) {
             gameState = LOADING
             let q = settings.readString("saveQueue") || ""
             loadChoices = q.length > 0 ? q.split(",") : []
@@ -2329,7 +2681,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
                 }
 
                 let data = [
-                    level, info.life(), invDirt, invStone, invWood, invLeaves,
+                    level, info.life(), invDirt, invStone, invWood, invLeaves, invBones,
                     player.x, player.y, theme, goalCol, goalRow,
                     zData.length / 3
                 ]
@@ -2362,12 +2714,14 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
                 invStone = data[3]
                 invWood = data[4]
                 invLeaves = data[5]
-                let px = data[6]
-                let py = data[7]
-                theme = data[8]
-                goalCol = data[9]
-                goalRow = data[10]
-                let zCount = data[11]
+                let offset = data.length >= 13 ? 1 : 0
+                invBones = offset ? data[6] : 0
+                let px = data[6 + offset]
+                let py = data[7 + offset]
+                theme = data[8 + offset]
+                goalCol = data[9 + offset]
+                goalRow = data[10 + offset]
+                let zCount = data[11 + offset]
 
                 // Unpack binary map
                 for (let i = 0; i < mapArr.length; i++) {
@@ -2466,6 +2820,11 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == LOADING) {
+        gameState = OPTIONS
+        return
+    }
+
+    if (gameState == DIFFICULTY) {
         gameState = OPTIONS
         return
     }
@@ -2584,6 +2943,16 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite: Sprite,
     })
 })
 
+sprites.onOverlap(SpriteKind.Skeleton, SpriteKind.Enemy, function (skel: Sprite, zombie: Sprite) {
+    if (gameState != PLAYING) return
+    forgetZombie(zombie)
+    zombie.destroy(effects.fire, 200)
+    forgetSkeleton(skel)
+    skel.destroy(effects.fire, 200)
+    music.playTone(131, 50)
+    updateSkeletonTargeting()
+})
+
 info.onLifeZero(function () {
     gameState = GAMEOVER
     stopLevelMusic()
@@ -2596,6 +2965,7 @@ info.onLifeZero(function () {
 // --------------------------------------------------------------------------
 game.onUpdate(function () {
     tickCoreAnimations()
+    tickSkeletons()
 
     if (gameState != PLAYING || player == null) return
 
@@ -2690,7 +3060,8 @@ function drawMatIcon(target: Image, mat: number, x: number, y: number) {
     if (mat == MAT_DIRT) target.drawTransparentImage(dirtWallTile, x, y)
     else if (mat == MAT_STONE) target.drawTransparentImage(spikesTile, x, y)
     else if (mat == MAT_WOOD) target.drawTransparentImage(woodTile, x, y)
-    else target.drawTransparentImage(leavesTile, x, y)
+    else if (mat == MAT_LEAVES) target.drawTransparentImage(leavesTile, x, y)
+    else target.drawTransparentImage(boneTile, x, y)
 }
 
 // 8x8 icon drawer (aligned perfectly for HUD size)
@@ -2698,7 +3069,8 @@ function drawMatIconMini(target: Image, mat: number, x: number, y: number) {
     if (mat == MAT_DIRT) target.drawTransparentImage(miniDirt, x, y)
     else if (mat == MAT_STONE) target.drawTransparentImage(miniStone, x, y)
     else if (mat == MAT_WOOD) target.drawTransparentImage(miniWood, x, y)
-    else target.drawTransparentImage(miniLeaves, x, y)
+    else if (mat == MAT_LEAVES) target.drawTransparentImage(miniLeaves, x, y)
+    else target.drawTransparentImage(miniBone, x, y)
 }
 
 function selectedIconY(): number {
@@ -2706,7 +3078,8 @@ function selectedIconY(): number {
     else if (selectedMat == MAT_STONE) return 54
     else if (selectedMat == MAT_WOOD) return 66
     else if (selectedMat == MAT_LEAVES) return 78
-    else return 90
+    else if (selectedMat == MAT_BONE) return 90
+    else return 102
 }
 
 function drawBlockyZombie(target: Image, x: number, y: number) {
@@ -2784,8 +3157,8 @@ function drawOptions(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["LEVELS", "HEALTH", "DEMO", "LOAD"];
-    for (let i = 0; i < 4; i++) {
+    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY", "LOAD"];
+    for (let i = 0; i < 5; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             if (optionChoice == i) menuView.print("> " + labels[i], 16, iy, 1)
@@ -2818,6 +3191,42 @@ function drawOptions(target: Image) {
     target.drawTransparentImage(menuView, 12, 38)
     target.print("A:SELECT B:BACK", 26, 102, 1)
 }
+
+function drawDifficultyMenu(target: Image) {
+    target.fillRect(0, 0, 160, 120, 15)
+    target.drawRect(10, 12, 140, 100, 1)
+    target.print("DIFFICULTY", 42, 20, 1)
+
+    let itemHeight = 24;
+    let selectedY = difficultyChoice * itemHeight;
+
+    // Smooth scrolling window calculator
+    if (selectedY - menuScrollY > 40) menuScrollY = selectedY - 40;
+    if (selectedY - menuScrollY < 0) menuScrollY = selectedY;
+
+    menuView.fill(0)
+    let y0 = 0 - menuScrollY;
+
+    let labels = ["ZMB SPEED", "ZMB COUNT"];
+    for (let i = 0; i < 2; i++) {
+        let iy = y0 + i * itemHeight;
+        if (iy > -itemHeight && iy < 60) {
+            if (difficultyChoice == i) menuView.print("> " + labels[i], 16, iy, 1)
+            else menuView.print("  " + labels[i], 16, iy, 1)
+
+            if (i == 0) {
+                menuView.print("< " + diffZombieSpeedLevel + " >", 84, iy, 1)
+            } else if (i == 1) {
+                let sign = diffZombieCountOffset >= 0 ? "+" : ""
+                menuView.print("< " + sign + diffZombieCountOffset + " >", 84, iy, 1)
+            }
+        }
+    }
+
+    target.drawTransparentImage(menuView, 12, 38)
+    target.print("L/R:ADJ B:BACK", 26, 102, 1)
+}
+
 
 function drawIntro(target: Image) {
     target.fillRect(0, 0, 160, 120, 15)
@@ -2863,9 +3272,9 @@ function drawInventory(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["Dirt Wall: " + invDirt, "Spikes: " + invStone, "Wood: " + invWood, "Leaves: " + invLeaves, "Save Game"];
+    let labels = ["Dirt Wall: " + invDirt, "Spikes: " + invStone, "Wood: " + invWood, "Leaves: " + invLeaves, "Skeleton: " + invBones, "Save Game"];
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             if (selectedMat == i) menuView.print(">", 4, iy + 4, 15)
@@ -2981,6 +3390,7 @@ function drawDemoPausedBanner(target: Image) {
 scene.createRenderable(100, function (target: Image, camera: scene.Camera) {
     if (gameState == TITLE) drawTitle(target)
     else if (gameState == OPTIONS) drawOptions(target)
+    else if (gameState == DIFFICULTY) drawDifficultyMenu(target)
     else if (gameState == INTRO) drawIntro(target)
     else if (gameState == PLAYING) {
         drawGoalPointer(target)

@@ -53,5 +53,5 @@ This game is designed to bypass standard MakeCode extensions that often cause me
 
 ## 📜 Credits
 * **Developer:** George Kraev
-* **Game Design** Luca Kraev
+* **Game Design:** Luca Kraev
 * **Platform:** Microsoft MakeCode Arcade

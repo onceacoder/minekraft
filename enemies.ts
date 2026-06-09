@@ -130,11 +130,23 @@ function spawnSkeleton(col: number, row: number) {
     let skel = sprites.create(sIdle, SpriteKind.Skeleton)
     tiles.placeOnTile(skel, tiles.getTileLocation(col, row))
     skel.z = 10
+    skel.lifespan = 15000 // Self destruct after 15 seconds
     skeletonRefs.push(skel)
     skeletonTargets.push(null)
     playCoreAnimation(skel, [sIdle], 150, true)
     updateSkeletonTargeting()
 }
+
+sprites.onDestroyed(SpriteKind.Skeleton, function (sprite: Sprite) {
+    if (sprite.lifespan <= 0) {
+        sprite.startEffect(effects.disintegrate, 200)
+    }
+    forgetSkeleton(sprite)
+})
+
+sprites.onDestroyed(SpriteKind.Enemy, function (sprite: Sprite) {
+    forgetZombie(sprite)
+})
 
 let pathUpdateCounter = 0
 function tickSkeletons() {
@@ -168,54 +180,22 @@ function tickSkeletons() {
         let ty = Math.floor(target.y / TILE)
 
         if (doPathing) {
-            let qX = [tx]
-            let qY = [ty]
-            let visitedX = [tx]
-            let visitedY = [ty]
-            
-            let foundNext = false
             let nextStepX = sx
             let nextStepY = sy
             
-            let head = 0
-            let iters = 0
-            while(head < qX.length && iters < 200) {
-                iters++
-                let cx = qX[head]
-                let cy = qY[head]
-                head++
-                
-                if (getGridDist(cx, cy, sx, sy) == 1) {
-                    nextStepX = cx
-                    nextStepY = cy
-                    foundNext = true
-                    break
-                }
-                
-                let dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]]
-                for(let d of dirs) {
-                    let nx = cx + d[0]
-                    let ny = cy + d[1]
-                    if (!isSolid(getTileId(nx, ny))) {
-                        let seen = false
-                        for(let v = 0; v < visitedX.length; v++) {
-                            if (visitedX[v] == nx && visitedY[v] == ny) { seen = true; break; }
-                        }
-                        if (!seen) {
-                            visitedX.push(nx)
-                            visitedY.push(ny)
-                            qX.push(nx)
-                            qY.push(ny)
-                        }
-                    }
-                }
-            }
-            
-            if (!foundNext) {
-                if (sx < tx && !isSolid(getTileId(sx + 1, sy))) nextStepX = sx + 1
-                else if (sx > tx && !isSolid(getTileId(sx - 1, sy))) nextStepX = sx - 1
-                else if (sy < ty && !isSolid(getTileId(sx, sy + 1))) nextStepY = sy + 1
-                else if (sy > ty && !isSolid(getTileId(sx, sy - 1))) nextStepY = sy - 1
+            let dx = tx - sx
+            let dy = ty - sy
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0 && !isSolid(getTileId(sx + 1, sy))) nextStepX = sx + 1
+                else if (dx < 0 && !isSolid(getTileId(sx - 1, sy))) nextStepX = sx - 1
+                else if (dy > 0 && !isSolid(getTileId(sx, sy + 1))) nextStepY = sy + 1
+                else if (dy < 0 && !isSolid(getTileId(sx, sy - 1))) nextStepY = sy - 1
+            } else {
+                if (dy > 0 && !isSolid(getTileId(sx, sy + 1))) nextStepY = sy + 1
+                else if (dy < 0 && !isSolid(getTileId(sx, sy - 1))) nextStepY = sy - 1
+                else if (dx > 0 && !isSolid(getTileId(sx + 1, sy))) nextStepX = sx + 1
+                else if (dx < 0 && !isSolid(getTileId(sx - 1, sy))) nextStepX = sx - 1
             }
             
             let walkSpeed = SKELETON_WALK_SPEED

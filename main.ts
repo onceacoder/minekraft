@@ -2712,12 +2712,13 @@ function drawOptions(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY", "LOAD"];
+    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY >>", "LOAD >>"];
     for (let i = 0; i < 5; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
-            if (optionChoice == i) menuView.print("> " + labels[i], 16, iy, 1)
-            else menuView.print("  " + labels[i], 16, iy, 1)
+            let col = (i >= 3) ? 5 : 1;
+            if (optionChoice == i) menuView.print("> " + labels[i], 16, iy, col)
+            else menuView.print("  " + labels[i], 16, iy, col)
 
             if (i == 0) {
                 if (selectedLevels == INFINITY || demoMode) {

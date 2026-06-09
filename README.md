@@ -34,6 +34,20 @@ The project is highly optimized for MakeCode's Static TypeScript (STS) and hardw
 4.  **Harvest & Build:** Face trees, rocks, or dirt and press `A` to collect resources. Open your inventory (`B`), select a material, and press `A` to build walls or deadly spikes to defend yourself against zombies.
 5.  **Save Your Progress:** Open the inventory (`B`), scroll to the bottom, and select `Save Game`. Enter a 3-letter save name to store your exact map and game state. 
 
+## 🏗️ Architecture
+
+The codebase utilizes a modular, multi-file structure to improve maintainability while remaining fully compatible with MakeCode's Static TypeScript (STS):
+
+* **`constants.ts`**: Global game state, tile indices, and shared configuration variables.
+* **`world.ts`**: Procedural tilemap generation and the low-level tile data buffer.
+* **`player.ts`**: Core animation system, player inputs, resource harvesting, and smart building mechanics.
+* **`enemies.ts`**: Zombie spawning, skeleton Dijkstra pathfinding, collision, and damage logic.
+* **`demo.ts`**: The autonomous Demo Mode AI and obstacle avoidance mechanics.
+* **`ui.ts`**: Heads-up display, scrolling inventory, and level lifecycle menus.
+* **`audio.ts`**: Procedural theme-based music generation and retro sound effects.
+* **`main.ts`**: The central entry point and primary `game.onUpdate` loop.
+* **`assets/images.ts`**: Sprite artwork and animations for characters, tiles, and UI.
+
 ## 💻 Technical Details
 
 This game is designed to bypass standard MakeCode extensions that often cause memory leaks or compiler errors on hardware. 
@@ -45,11 +59,9 @@ This game is designed to bypass standard MakeCode extensions that often cause me
 ## 🚀 Installation
 
 1.  Open [MakeCode Arcade](https://arcade.makecode.com/).
-2.  Click **New Project**.
-3.  Switch the view at the top from **Blocks** to **JavaScript/TypeScript**.
-4.  Delete all existing code in the editor.
-5.  Copy the full contents of `minekraft.ts` and paste it into the editor.
-6.  The game will compile and run automatically in the simulator!
+2.  Click **Import** on the home screen.
+3.  Select **Import URL...** and paste the URL to this GitHub repository.
+4.  The game will compile and run automatically in the simulator!
 
 ## 📜 Credits
 * **Developer:** George Kraev

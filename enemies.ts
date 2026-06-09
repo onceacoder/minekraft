@@ -257,6 +257,7 @@ function spawnZombie() {
     let spawnCol = 2
     let spawnRow = 2
 
+    // Attempt up to 20 times to find a valid spawn location far from the player
     for (let attempt = 0; attempt < 20; attempt++) {
         spawnCol = randint(2, MAP_W - 3)
         spawnRow = randint(2, MAP_H - 3)
@@ -275,8 +276,18 @@ function spawnZombie() {
     setZombieMode(zombie, 0)
 }
 
+// Standard background spawning loop
 game.onUpdateInterval(ZOMBIE_SPAWN_INTERVAL_MS, function () {
     spawnZombie()
+})
+
+// Accelerated spawning loop for Survive mode
+game.onUpdateInterval(2000, function () {
+    if (activeObstacle == OBSTACLE_SURVIVE && survivalTimer > 0) {
+        if (zombieCount() < maxZombies + 5) {
+            spawnZombie()
+        }
+    }
 })
 
 game.onUpdateInterval(ZOMBIE_MODE_CHECK_MS, function () {

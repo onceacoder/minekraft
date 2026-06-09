@@ -166,8 +166,8 @@ function drawOptions(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY >>", "LOAD >>"];
-    for (let i = 0; i < 5; i++) {
+    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY >>", "LOAD >>", "OBSTACLES >>"];
+    for (let i = 0; i < 6; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             let col = (i >= 3) ? 5 : 1;
@@ -199,7 +199,7 @@ function drawOptions(target: Image) {
 
     // Drawing clipped menu viewport prevents overlapping the bottom legend
     target.drawTransparentImage(menuView, 12, 38)
-    drawScrollIndicator(target, 146, 38, 60, 5 * itemHeight, menuScrollY, 1)
+    drawScrollIndicator(target, 146, 38, 60, 6 * itemHeight, menuScrollY, 1)
     target.print("A:SELECT B:BACK", 26, 102, 1)
 }
 
@@ -239,6 +239,41 @@ function drawDifficultyMenu(target: Image) {
     target.print("L/R:ADJ B:BACK", 26, 102, 1)
 }
 
+function drawObstaclesMenu(target: Image) {
+    target.fillRect(0, 0, 160, 120, 15)
+    target.drawRect(10, 12, 140, 100, 1)
+    printBold(target, "OBSTACLES", 44, 20, 1)
+
+    let itemHeight = 20;
+    let selectedY = obstacleChoicePos * itemHeight;
+
+    if (selectedY - menuScrollY > 40) menuScrollY = selectedY - 40;
+    if (selectedY - menuScrollY < 0) menuScrollY = selectedY;
+
+    menuView.fill(0)
+    let y0 = 0 - menuScrollY;
+
+    let labels = ["RIVERS", "SURVIVAL", "TOLLS"];
+    let toggles = [optRiver, optSurvive, optToll];
+    
+    for (let i = 0; i < 3; i++) {
+        let iy = y0 + i * itemHeight;
+        if (iy > -itemHeight && iy < 60) {
+            if (obstacleChoicePos == i) menuView.print("> " + labels[i], 16, iy + 4, 1)
+            else menuView.print("  " + labels[i], 16, iy + 4, 1)
+
+            menuView.drawRect(90, iy + 2, 10, 10, 1)
+            if (toggles[i]) {
+                menuView.print("x", 92, iy + 3, 5)
+            }
+        }
+    }
+
+    target.drawTransparentImage(menuView, 12, 38)
+    drawScrollIndicator(target, 146, 38, 60, 3 * itemHeight, menuScrollY, 1)
+    target.print("A:TOGGLE B:BACK", 22, 102, 1)
+}
+
 
 function drawIntro(target: Image) {
     target.fillRect(0, 0, 160, 120, 15)
@@ -265,6 +300,23 @@ function drawResourceHud(target: Image) {
     if (selectedMat != MAT_SAVE) {
         drawMatIconMini(target, selectedMat, x + 2, 2)
         target.print(countText, x + 12, 2, 15)
+    }
+
+    // Dynamic Obstacles HUD
+    if (activeObstacle == OBSTACLE_SURVIVE) {
+        target.fillRect(50, 0, 60, 12, 1)
+        target.drawRect(50, 0, 60, 12, 15)
+        let s = Math.ceil(survivalTimer / 1000)
+        let ts = s < 10 ? "0" + s : "" + s
+        target.print("TIME: " + ts, 54, 2, 15)
+    } else if (activeObstacle == OBSTACLE_TOLL) {
+        target.fillRect(36, 0, 88, 12, 1)
+        target.drawRect(36, 0, 88, 12, 15)
+        target.print("TOLL: ", 40, 2, 15)
+        drawMatIconMini(target, MAT_WOOD, 70, 2)
+        target.print("" + tollWood, 80, 2, 15)
+        drawMatIconMini(target, MAT_STONE, 96, 2)
+        target.print("" + tollStone, 106, 2, 15)
     }
 }
 

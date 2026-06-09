@@ -17,6 +17,7 @@ let diamondTile: Image = null
 let woodTile: Image = null
 let leavesTile: Image = null
 let boneTile: Image = null
+let waterTile: Image = null
 let tileImages: Image[] = []
 
 // Pre-initialize basic tiles so rendering functions have valid image references.
@@ -156,6 +157,17 @@ function makeBone(): Image {
     return im
 }
 
+function makeWater(): Image {
+    let im = image.create(16, 16)
+    im.fill(8)
+    for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+            if ((x * 2 + y * 3 + Math.floor(game.runtime() / 200)) % 7 == 0) im.setPixel(x, y, 9)
+        }
+    }
+    return im
+}
+
 function initTiles() {
     grassTile = makeGrass()
     dirtTile = makeDirt()
@@ -167,9 +179,10 @@ function initTiles() {
     woodTile = makeWood()
     leavesTile = makeLeaves()
     boneTile = makeBone()
+    waterTile = makeWater()
     tileImages = [
         grassTile, dirtTile, stoneTile, bedrockTile,
-        dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile
+        dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile, waterTile
     ]
 }
 
@@ -200,7 +213,7 @@ function getTileId(col: number, row: number): number {
 }
 
 function isSolid(tileId: number): boolean {
-    return tileId == DIRT || tileId == STONE || tileId == BEDROCK || tileId == DIRT_WALL || tileId == WOOD
+    return tileId == DIRT || tileId == STONE || tileId == BEDROCK || tileId == DIRT_WALL || tileId == WOOD || tileId == WATER
 }
 
 function rawSetTile(col: number, row: number, tileId: number) {
@@ -242,12 +255,14 @@ function makeTree(cx: number, cy: number) {
 }
 
 function generateWorld() {
+    // 1. Fill entire map with Grass
     for (let col = 0; col < MAP_W; col++) {
         for (let row = 0; row < MAP_H; row++) {
             rawSetTile(col, row, GRASS)
         }
     }
 
+    // 2. Create impenetrable Bedrock border around the edges
     for (let col2 = 0; col2 < MAP_W; col2++) {
         rawSetTile(col2, 0, BEDROCK)
         rawSetTile(col2, MAP_H - 1, BEDROCK)
@@ -258,12 +273,14 @@ function generateWorld() {
         rawSetTile(MAP_W - 1, row2, BEDROCK)
     }
 
+    // 3. Scatter trees randomly (avoiding the player's spawn area)
     for (let i = 0; i < 70 + level * 3; i++) {
         let tx = randint(2, MAP_W - 3)
         let ty = randint(2, MAP_H - 3)
         if (Math.abs(tx - 24) > 5 || Math.abs(ty - 10) > 5) makeTree(tx, ty)
     }
 
+    // 4. Scatter basic resources (Dirt/Stone) in the lower section of the map
     for (let i2 = 0; i2 < 170 + level * 6; i2++) {
         let bx = randint(4, MAP_W - 5)
         let by = randint(18, MAP_H - 6)
@@ -271,12 +288,14 @@ function generateWorld() {
         else rawSetTile(bx, by, STONE)
     }
 
+    // 5. Scatter bone fragments for skeleton summoning
     for (let i3 = 0; i3 < 85 + level * 3; i3++) {
         let bx = randint(4, MAP_W - 5)
         let by = randint(18, MAP_H - 6)
         rawSetTile(bx, by, BONE)
     }
 
+    // 6. Generate resource clusters/veins
     for (let cluster = 0; cluster < 18; cluster++) {
         let cx = randint(6, MAP_W - 7)
         let cy = randint(20, MAP_H - 8)
@@ -289,12 +308,14 @@ function generateWorld() {
         }
     }
 
+    // 7. Carve a guaranteed passable path from spawn to the bottom
     let routeX = 24
     let routeY = 10
 
     while (routeY < 42) {
         clearArea(routeX, routeY, 2)
 
+        // Random horizontal shifting for the path
         if (randint(0, 100) < 55) {
             let sideSteps = randint(3, 7)
             let dir = randint(0, 1) == 0 ? -1 : 1
@@ -307,23 +328,49 @@ function generateWorld() {
             }
         }
 
+        // Move path downwards
         routeY += randint(2, 4)
         clearArea(routeX, routeY, 2)
     }
 
+    // 8. Place the Diamond (Goal) at the end of the path
     clearArea(routeX, 44, 4)
     goalCol = routeX
     goalRow = 44
     rawSetTile(goalCol, goalRow, DIAMOND)
 
+    // Build a decorative stone enclosure around the Diamond entrance
     for (let gx = routeX - 4; gx <= routeX + 4; gx++) {
         if (inBounds(gx, 40)) rawSetTile(gx, 40, STONE)
     }
 
+    // Leave a 3-tile wide entrance hole in the enclosure
     rawSetTile(routeX, 40, GRASS)
     rawSetTile(routeX - 1, 40, GRASS)
     rawSetTile(routeX + 1, 40, GRASS)
+    
+    // Final spawn clearing to ensure player doesn't spawn in a tree
     clearArea(24, 10, 5)
+
+    // 9. Apply dynamic obstacles (if selected)
+    if (activeObstacle == OBSTACLE_RIVER) {
+        generateRiver()
+    }
+}
+
+// Procedurally cuts a jagged water hazard across the map
+function generateRiver() {
+    let ry = randint(20, 28)
+    for (let rx = 1; rx < MAP_W - 1; rx++) {
+        rawSetTile(rx, ry, WATER)
+        rawSetTile(rx, ry + 1, WATER)
+        if (randint(0, 100) < 50) rawSetTile(rx, ry + 2, WATER)
+        if (randint(0, 100) < 30) rawSetTile(rx, ry - 1, WATER)
+        
+        ry += randint(-1, 1)
+        if (ry < 18) ry = 18
+        if (ry > 32) ry = 32
+    }
 }
 
 

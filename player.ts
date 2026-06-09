@@ -232,6 +232,7 @@ function breakEffect(col: number, row: number) {
 }
 
 function buildBlock(col: number, row: number, dirX: number, dirY: number) {
+    // Determine which inventory to debit based on the currently selected material
     if (selectedMat == MAT_DIRT) {
         invDirt += -1
         setTile(col, row, DIRT_WALL)
@@ -276,19 +277,22 @@ function performTargetAction() {
         return
     }
 
+    // If we have resources selected, attempt to build
     if (matCount() > 0 && selectedMat != MAT_SAVE) {
-        if (frontId == GRASS) {
+        // Try exactly the space right in front of the player
+        if (frontId == GRASS || frontId == WATER) {
             buildBlock(frontCol, frontRow, facingDx, facingDy)
             return
         }
 
+        // Auto-search: Fallback to the nearest valid grass or water around the player
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
                 if (dx == 0 && dy == 0) continue
                 let c = playerCol() + dx
                 let r = playerRow() + dy
 
-                if (getTileId(c, r) == GRASS) {
+                if (getTileId(c, r) == GRASS || getTileId(c, r) == WATER) {
                     buildBlock(c, r, dx, dy)
                     return
                 }
@@ -320,6 +324,12 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == DIFFICULTY) {
         difficultyChoice += -1
         if (difficultyChoice < 0) difficultyChoice = 1
+        return
+    }
+
+    if (gameState == OBSTACLES) {
+        obstacleChoicePos += -1
+        if (obstacleChoicePos < 0) obstacleChoicePos = 2
         return
     }
 
@@ -361,6 +371,12 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == DIFFICULTY) {
         difficultyChoice += 1
         if (difficultyChoice > 1) difficultyChoice = 0
+        return
+    }
+
+    if (gameState == OBSTACLES) {
+        obstacleChoicePos += 1
+        if (obstacleChoicePos > 2) obstacleChoicePos = 0
         return
     }
 
@@ -470,7 +486,18 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             loadChoices = getSaveList()
             loadChoicePos = 0
             menuScrollY = 0
+        } else if (optionChoice == 5) {
+            gameState = OBSTACLES
+            obstacleChoicePos = 0
+            menuScrollY = 0
         }
+        return
+    }
+
+    if (gameState == OBSTACLES) {
+        if (obstacleChoicePos == 0) optRiver = !optRiver
+        else if (obstacleChoicePos == 1) optSurvive = !optSurvive
+        else if (obstacleChoicePos == 2) optToll = !optToll
         return
     }
 
@@ -537,6 +564,11 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == DIFFICULTY) {
+        gameState = OPTIONS
+        return
+    }
+
+    if (gameState == OBSTACLES) {
         gameState = OPTIONS
         return
     }

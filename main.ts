@@ -32,6 +32,18 @@ game.onUpdate(function () {
 
     updateDiamondMarker()
 
+    // Survival Mode mechanic: Check and decrement timer until Diamond spawn
+    if (activeObstacle == OBSTACLE_SURVIVE && survivalTimer > 0) {
+        survivalTimer -= 33 // Approximate delta time for 30 FPS
+        if (survivalTimer <= 0) {
+            survivalTimer = 0
+            // Spawn the diamond physically in the grid now that time is up
+            rawSetTile(goalCol, goalRow, DIAMOND)
+            if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+            music.playTone(440, 500)
+        }
+    }
+
     if (inventoryOpen) {
         stopPlayer()
         stopEnemies()
@@ -44,6 +56,7 @@ game.onUpdate(function () {
         updateFacing()
     }
 
+    // Update the visual representation of the player's facing direction and animation state
     updatePlayerAnim()
 
     if (!demoMode) {
@@ -52,12 +65,13 @@ game.onUpdate(function () {
         if (targetCursor != null) targetCursor.setFlag(SpriteFlag.Invisible, true)
     }
 
+    // Check if enemies walked onto Spike traps
     for (let zombie of sprites.allOfKind(SpriteKind.Enemy)) {
         let zCol = Math.floor(zombie.x / TILE)
         let zRow = Math.floor(zombie.y / TILE)
 
         if (getTileId(zCol, zRow) == SPIKES) {
-            setTile(zCol, zRow, GRASS)
+            setTile(zCol, zRow, GRASS) // Trap breaks after one use
             forgetZombie(zombie)
             zombie.destroy(effects.fire, 200)
             breakEffect(zCol, zRow)
@@ -69,7 +83,7 @@ game.onUpdate(function () {
         let sRow = Math.floor(skel.y / TILE)
 
         if (getTileId(sCol, sRow) == SPIKES) {
-            setTile(sCol, sRow, GRASS)
+            setTile(sCol, sRow, GRASS) // Trap breaks after one use
             forgetSkeleton(skel)
             skel.destroy(effects.fire, 200)
             breakEffect(sCol, sRow)
@@ -77,8 +91,27 @@ game.onUpdate(function () {
         }
     }
 
+    // Goal collision detection
     if (getTileId(playerCol(), playerRow()) == DIAMOND) {
-        finishLevel()
+        if (activeObstacle == OBSTACLE_TOLL) {
+            // Check if player has required toll resources
+            if (invWood >= tollWood && invStone >= tollStone) {
+                invWood -= tollWood
+                invStone -= tollStone
+                finishLevel()
+            } else {
+                // Not enough resources: physically bounce the player away from the diamond center
+                let dx = player.x - (goalCol * TILE + 8)
+                let dy = player.y - (goalRow * TILE + 8)
+                if (dx === 0 && dy === 0) dx = 1 // Prevent divide-by-zero or zero-push
+                player.x += Math.sign(dx) * 8
+                player.y += Math.sign(dy) * 8
+                music.playTone(131, 100) // Rejection sound
+            }
+        } else {
+            // Standard level completion
+            finishLevel()
+        }
     }
 })
 

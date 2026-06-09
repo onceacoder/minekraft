@@ -17,6 +17,7 @@ const DIAMOND = 6
 const WOOD = 7
 const LEAVES = 8
 const BONE = 9
+const WATER = 10
 
 const MAT_DIRT = 0
 const MAT_STONE = 1
@@ -34,6 +35,7 @@ const GAMEOVER = 5
 const SAVING = 6
 const LOADING = 7
 const DIFFICULTY = 8
+const OBSTACLES = 9
 
 const PLAYER_SPEED = 80
 const DEMO_SPEED = 60
@@ -62,8 +64,32 @@ let optionChoice = 0
 let difficultyChoice = 0
 let diffZombieSpeedLevel = 3
 let diffZombieCountOffset = 0
+
+// Obstacle Config and State
+let optRiver = true
+let optSurvive = true
+let optToll = true
+
+const OBSTACLE_NONE = 0
+const OBSTACLE_RIVER = 1
+const OBSTACLE_SURVIVE = 2
+const OBSTACLE_TOLL = 3
+
+let activeObstacle = OBSTACLE_NONE // The obstacle selected for the current level
+let survivalTimer = 0 // Ticks down in survival mode before diamond spawns
+let tollWood = 0 // Wood required to pass toll
+let tollStone = 0 // Stone required to pass toll
+let obstacleChoicePos = 0 // UI selection index for obstacles menu
+
+// Configuration & Game Loop Settings
 let selectedLevels = 1
 let selectedHealth = 5
+let level = 1
+let firstTheme = 0
+let theme = 0
+let musicToken = 0
+
+// Auto-playing Demo Mode tracking variables
 let demoMode = false
 let demoPaused = false
 let demoActionCooldown = 0
@@ -99,32 +125,30 @@ let demoEscapeVy = 0
 let demoBuildCooldown = 0
 let demoStartedAt = 0
 let demoSeekDiamond = false
-let level = 1
-let firstTheme = 0
-let theme = 0
-let musicToken = 0
 
+// Player Inventory and Status
 let invDirt = 0
 let invStone = 0
 let invWood = 0
 let invLeaves = 0
 let invBones = 0
-let selectedMat = MAT_DIRT
+let selectedMat = MAT_DIRT // Currently selected build material
 let inventoryOpen = false
+let facingDx = 1 // Player facing direction X
+let facingDy = 0 // Player facing direction Y
+let invincible = false // I-frames state after getting hit
+let maxZombies = 5 // Current cap on spawned zombies
 
-let facingDx = 1
-let facingDy = 0
-let invincible = false
-let maxZombies = 5
+// Level Map Elements
+let goalCol = 0 // Diamond X location in grid
+let goalRow = 0 // Diamond Y location in grid
 
-let goalCol = 0
-let goalRow = 0
-
+// Essential Game Sprites
 let player: Sprite = null
 let targetCursor: Sprite = null
 let diamondMarker: Sprite = null
-let playerAnim = ""
-let playerAttackUntil = 0
+let playerAnim = "" // Tracks current sprite animation state
+let playerAttackUntil = 0 // Timer for attack animation cooldown
 
 // Scrolling UI Buffer tracking
 let menuScrollY = 0

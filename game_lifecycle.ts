@@ -87,14 +87,36 @@ function moveInventorySelection(amount: number) {
 }
 
 function setupLevel() {
-    destroyLevelSprites()
-    chooseTheme()
-    initTiles()
-    generateWorld()
+    destroyLevelSprites() // Clean slate for the new level
+    chooseTheme() // Randomize tile color palette
+    initTiles() // Rebuild tile images with the new theme
+    
+    // Select an active obstacle from the user's enabled settings
+    let activeOpts: number[] = []
+    if (optRiver) activeOpts.push(OBSTACLE_RIVER)
+    if (optSurvive) activeOpts.push(OBSTACLE_SURVIVE)
+    if (optToll) activeOpts.push(OBSTACLE_TOLL)
+
+    if (activeOpts.length > 0) {
+        activeObstacle = activeOpts[randint(0, activeOpts.length - 1)]
+    } else {
+        activeObstacle = OBSTACLE_NONE // Classic mode
+    }
+
+    if (activeObstacle == OBSTACLE_SURVIVE) {
+        survivalTimer = 60000 // 60 seconds
+    } else if (activeObstacle == OBSTACLE_TOLL) {
+        // Toll scales up with the level depth
+        tollWood = 5 + level * 2
+        tollStone = 2 + level
+    }
+
+    generateWorld() // Physically generate the grid layout
 
     tiles.setTilemap(tiles.createTilemap(world, layout, tileImages, TileScale.Sixteen))
     refreshMap()
 
+    // Setup player character
     player = sprites.create(pDown, SpriteKind.Player)
     tiles.placeOnTile(player, tiles.getTileLocation(24, 10))
     player.z = 10
@@ -108,6 +130,10 @@ function setupLevel() {
     targetCursor.setFlag(SpriteFlag.Invisible, true)
 
     createDiamondMarker()
+    if (activeObstacle == OBSTACLE_SURVIVE) {
+        diamondMarker.setFlag(SpriteFlag.Invisible, true)
+        rawSetTile(goalCol, goalRow, GRASS)
+    }
 
     maxZombies = 5 + level + diffZombieCountOffset
     if (maxZombies < 0) maxZombies = 0

@@ -222,8 +222,9 @@ function drawDifficultyMenu(target: Image) {
     for (let i = 0; i < 3; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
-            if (difficultyChoice == i) menuView.print("> " + labels[i], 16, iy, 1)
-            else menuView.print("  " + labels[i], 16, iy, 1)
+            let col = (i == 2) ? 5 : 1;
+            if (difficultyChoice == i) menuView.print("> " + labels[i], 16, iy, col)
+            else menuView.print("  " + labels[i], 16, iy, col)
 
             if (i == 0) {
                 menuView.print("< " + diffZombieSpeedLevel + " >", 84, iy, 1)

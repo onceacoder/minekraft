@@ -28,6 +28,37 @@ game.onUpdate(function () {
     tickCoreAnimations()
     tickSkeletons()
 
+    if (gameState == TOLL_DIALOG && demoMode) {
+        if (game.runtime() % 1000 < 50) { // Slight delay to show dialog before acting
+            let current = 0
+            if (tollMat == MAT_DIRT) current = invDirt
+            else if (tollMat == MAT_STONE) current = invStone
+            else if (tollMat == MAT_WOOD) current = invWood
+            else if (tollMat == MAT_LEAVES) current = invLeaves
+            else if (tollMat == MAT_BONE) current = invBones
+
+            if (current >= tollAmount) {
+                if (tollMat == MAT_DIRT) invDirt -= tollAmount
+                else if (tollMat == MAT_STONE) invStone -= tollAmount
+                else if (tollMat == MAT_WOOD) invWood -= tollAmount
+                else if (tollMat == MAT_LEAVES) invLeaves -= tollAmount
+                else if (tollMat == MAT_BONE) invBones -= tollAmount
+
+                gameState = PLAYING
+                finishLevel()
+            } else {
+                music.playTone(131, 100)
+                // Bounce away and go back to harvesting
+                player.x -= 32 * getSign(player.x - goalCol * TILE - 8)
+                player.y -= 32 * getSign(player.y - goalRow * TILE - 8)
+                gameState = PLAYING
+                demoSeekDiamond = false
+                demoStateUntil = 0
+            }
+        }
+        return
+    }
+
     if (gameState != PLAYING || player == null) return
 
     updateDiamondMarker()

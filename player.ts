@@ -188,7 +188,7 @@ function updateFacing() {
 }
 
 function autoAlignPlayer() {
-    if (player == null || gameState != PLAYING || isDemoActive() || inventoryOpen) return
+    if (player == null || gameState != PLAYING || inventoryOpen) return
     
     // Auto-align gently pushes the player to the center of the column or row they are traveling in,
     // so that they don't get snagged on the corners of solid blocks.

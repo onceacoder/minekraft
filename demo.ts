@@ -102,6 +102,27 @@ function demoNearDiamond(): boolean {
     return dx <= 6 && dy <= 6
 }
 
+function demoCanAffordToll(): boolean {
+    if (activeObstacle != OBSTACLE_TOLL) return true
+    let current = 0
+    if (tollMat == MAT_DIRT) current = invDirt
+    else if (tollMat == MAT_STONE) current = invStone
+    else if (tollMat == MAT_WOOD) current = invWood
+    else if (tollMat == MAT_LEAVES) current = invLeaves
+    else if (tollMat == MAT_BONE) current = invBones
+    return current >= tollAmount
+}
+
+function demoIsTileTollMaterial(tid: number): boolean {
+    if (activeObstacle != OBSTACLE_TOLL) return false
+    if (tollMat == MAT_DIRT && tid == DIRT) return true
+    if (tollMat == MAT_STONE && tid == STONE) return true
+    if (tollMat == MAT_WOOD && tid == WOOD) return true
+    if (tollMat == MAT_LEAVES && tid == LEAVES) return true
+    if (tollMat == MAT_BONE && tid == BONE) return true
+    return false
+}
+
 function chooseDemoTrajectory() {
     if (player == null) return
 
@@ -109,7 +130,7 @@ function chooseDemoTrajectory() {
     demoTrajectoryStartRow = currentDemoRow()
     demoTrajectoryLen = randint(10, 20)
 
-    if (demoNearDiamond()) {
+    if (demoNearDiamond() && demoCanAffordToll()) {
         demoSeekDiamond = true
         demoTrajectoryEndCol = goalCol
         demoTrajectoryEndRow = goalRow
@@ -119,6 +140,35 @@ function chooseDemoTrajectory() {
         demoTrajectoryUntil = demoWaypointUntil
         demoMoveUntil = 0
         return
+    }
+
+    if (activeObstacle == OBSTACLE_TOLL && !demoCanAffordToll()) {
+        let bestDist = 9999
+        let bestCol = -1
+        let bestRow = -1
+        for (let r = 2; r < MAP_H - 2; r++) {
+            for (let c = 2; c < MAP_W - 2; c++) {
+                if (demoIsTileTollMaterial(getTileId(c, r))) {
+                    let d = Math.abs(c - demoTrajectoryStartCol) + Math.abs(r - demoTrajectoryStartRow)
+                    if (d < bestDist) {
+                        bestDist = d
+                        bestCol = c
+                        bestRow = r
+                    }
+                }
+            }
+        }
+        if (bestCol != -1) {
+            demoTrajectoryEndCol = bestCol
+            demoTrajectoryEndRow = bestRow
+            demoWaypointCol = bestCol
+            demoWaypointRow = bestRow
+            demoWaypointUntil = game.runtime() + randint(4500, 8500)
+            demoTrajectoryUntil = demoWaypointUntil
+            demoMoveUntil = 0
+            demoReverseCount = 0
+            return
+        }
     }
 
     let dx = randint(-1, 1)
@@ -231,6 +281,8 @@ function demoTryHarvestNearby(): boolean {
     if (game.runtime() < demoHarvestCooldown) return false
     if (randint(0, 100) > 48) return false
 
+    let needToll = activeObstacle == OBSTACLE_TOLL && !demoCanAffordToll()
+
     for (let i = 0; i < 9; i++) {
         let dx = randint(-1, 1)
         let dy = randint(-1, 1)
@@ -238,8 +290,13 @@ function demoTryHarvestNearby(): boolean {
         if (dx != 0 || dy != 0) {
             let col = playerCol() + dx
             let row = playerRow() + dy
+            let tid = getTileId(col, row)
 
-            if (isHarvestable(getTileId(col, row))) {
+            if (isHarvestable(tid)) {
+                if (needToll && !demoIsTileTollMaterial(tid)) {
+                    continue // Skip harvesting non-toll materials if we specifically need a toll
+                }
+
                 facingDx = dx
                 facingDy = dy
                 performTargetAction()
@@ -573,8 +630,13 @@ function demoChooseBehaviour() {
     if (game.runtime() < demoStateUntil) return
 
     if (game.runtime() - demoStartedAt > 22000 || randint(0, 1000) < 5) {
-        demoSeekDiamond = true
-        demoModeState = 3
+        if (demoCanAffordToll()) {
+            demoSeekDiamond = true
+            demoModeState = 3
+        } else {
+            demoModeState = randint(0, 2)
+            demoSeekDiamond = false
+        }
     } else {
         demoModeState = randint(0, 2)
         demoSeekDiamond = false

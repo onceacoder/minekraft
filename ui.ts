@@ -114,7 +114,7 @@ function drawTitle(target: Image) {
 
     target.fillRect(12, 5, 136, 42, 15)
     target.drawRect(12, 5, 136, 42, 1)
-    printBold(target, "MINEKRAFT", 52, 12, 1)
+    target.print("MINEKRAFT", 52, 12, 1)
     target.print("by Luca", 62, 31, 1)
 
     drawBlockyMiner(target, 35, 58)
@@ -166,8 +166,8 @@ function drawOptions(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY >>", "LOAD >>", "OBSTACLES >>"];
-    for (let i = 0; i < 6; i++) {
+    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY >>", "LOAD >>"];
+    for (let i = 0; i < 5; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             let col = (i >= 3) ? 5 : 1;
@@ -199,7 +199,7 @@ function drawOptions(target: Image) {
 
     // Drawing clipped menu viewport prevents overlapping the bottom legend
     target.drawTransparentImage(menuView, 12, 38)
-    drawScrollIndicator(target, 146, 38, 60, 6 * itemHeight, menuScrollY, 1)
+    drawScrollIndicator(target, 146, 38, 60, 5 * itemHeight, menuScrollY, 1)
     target.print("A:SELECT B:BACK", 26, 102, 1)
 }
 
@@ -218,8 +218,8 @@ function drawDifficultyMenu(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["ZMB SPEED", "ZMB COUNT"];
-    for (let i = 0; i < 2; i++) {
+    let labels = ["ZMB SPEED", "ZMB COUNT", "OBSTACLES >>"];
+    for (let i = 0; i < 3; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             if (difficultyChoice == i) menuView.print("> " + labels[i], 16, iy, 1)
@@ -235,8 +235,8 @@ function drawDifficultyMenu(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 12, 38)
-    drawScrollIndicator(target, 146, 38, 60, 2 * itemHeight, menuScrollY, 1)
-    target.print("L/R:ADJ B:BACK", 26, 102, 1)
+    drawScrollIndicator(target, 146, 38, 60, 3 * itemHeight, menuScrollY, 1)
+    target.print("A:SEL L/R:ADJ B:BACK", 12, 102, 1)
 }
 
 function drawObstaclesMenu(target: Image) {
@@ -304,20 +304,43 @@ function drawResourceHud(target: Image) {
 
     // Dynamic Obstacles HUD
     if (activeObstacle == OBSTACLE_SURVIVE) {
-        target.fillRect(50, 0, 60, 12, 1)
-        target.drawRect(50, 0, 60, 12, 15)
+        target.fillRect(40, 0, 80, 12, 1)
+        target.drawRect(40, 0, 80, 12, 15)
         let s = Math.ceil(survivalTimer / 1000)
         let ts = s < 10 ? "0" + s : "" + s
-        target.print("TIME: " + ts, 54, 2, 15)
+        let pfx = survivalPhase == 1 ? "PREP:" : "SURV:"
+        target.print(pfx + " " + ts, 44, 2, 15)
     } else if (activeObstacle == OBSTACLE_TOLL) {
-        target.fillRect(36, 0, 88, 12, 1)
-        target.drawRect(36, 0, 88, 12, 15)
-        target.print("TOLL: ", 40, 2, 15)
-        drawMatIconMini(target, MAT_WOOD, 70, 2)
-        target.print("" + tollWood, 80, 2, 15)
-        drawMatIconMini(target, MAT_STONE, 96, 2)
-        target.print("" + tollStone, 106, 2, 15)
+        target.fillRect(50, 0, 60, 12, 1)
+        target.drawRect(50, 0, 60, 12, 15)
+        target.print("TOLL:", 54, 2, 15)
+        drawMatIconMini(target, tollMat, 84, 2)
+        target.print("" + tollAmount, 94, 2, 15)
     }
+}
+
+function drawTollDialog(target: Image) {
+    target.fillRect(20, 20, 120, 80, 15)
+    target.drawRect(20, 20, 120, 80, 1)
+    printBold(target, "PAY TOLL?", 48, 28, 1)
+
+    target.print("Req:", 30, 46, 1)
+    drawMatIconMini(target, tollMat, 60, 46)
+    target.print("" + tollAmount, 70, 46, 1)
+
+    let current = 0
+    if (tollMat == MAT_DIRT) current = invDirt
+    else if (tollMat == MAT_STONE) current = invStone
+    else if (tollMat == MAT_WOOD) current = invWood
+    else if (tollMat == MAT_LEAVES) current = invLeaves
+    else if (tollMat == MAT_BONE) current = invBones
+
+    target.print("Has:", 30, 62, 1)
+    drawMatIconMini(target, tollMat, 60, 62)
+    let color = current >= tollAmount ? 1 : 2
+    target.print("" + current, 70, 62, color)
+
+    target.print("A:Pay  B:Cancel", 26, 84, 1)
 }
 
 function drawInventory(target: Image) {
@@ -419,9 +442,9 @@ function drawVictory(target: Image) {
 
     target.fillRect(12, 14, 136, 56, 15)
     target.drawRect(12, 14, 136, 56, 1)
-    printBold(target, "MINEKRAFT", 52, 22, 1)
-    printBold(target, "GAME COMPLETE", 34, 38, 1)
-    printBold(target, "WELL DONE!", 48, 52, 1)
+    target.print("MINEKRAFT", 52, 22, 1)
+    target.print("GAME COMPLETE", 34, 38, 1)
+    target.print("WELL DONE!", 48, 52, 1)
 
     drawBlockyMiner(target, 30, 76)
     drawBlockyZombie(target, 114, 76)

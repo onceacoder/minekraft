@@ -252,6 +252,7 @@ function zombieCount(): number {
 
 function spawnZombie() {
     if (gameState != PLAYING || player == null || inventoryOpen) return
+    if (activeObstacle == OBSTACLE_SURVIVE && survivalPhase == 1) return // No zombies during prep
     if (zombieCount() >= maxZombies) return
 
     let spawnCol = 2
@@ -283,7 +284,7 @@ game.onUpdateInterval(ZOMBIE_SPAWN_INTERVAL_MS, function () {
 
 // Accelerated spawning loop for Survive mode
 game.onUpdateInterval(2000, function () {
-    if (activeObstacle == OBSTACLE_SURVIVE && survivalTimer > 0) {
+    if (activeObstacle == OBSTACLE_SURVIVE && survivalPhase == 2) {
         if (zombieCount() < maxZombies + 5) {
             spawnZombie()
         }

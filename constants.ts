@@ -36,6 +36,7 @@ const SAVING = 6
 const LOADING = 7
 const DIFFICULTY = 8
 const OBSTACLES = 9
+const TOLL_DIALOG = 10
 
 const PLAYER_SPEED = 80
 const DEMO_SPEED = 60
@@ -77,8 +78,9 @@ const OBSTACLE_TOLL = 3
 
 let activeObstacle = OBSTACLE_NONE // The obstacle selected for the current level
 let survivalTimer = 0 // Ticks down in survival mode before diamond spawns
-let tollWood = 0 // Wood required to pass toll
-let tollStone = 0 // Stone required to pass toll
+let survivalPhase = 0 // 0=none, 1=prep, 2=survive
+let tollMat = 0 // Material required for toll
+let tollAmount = 0 // Amount of material required
 let obstacleChoicePos = 0 // UI selection index for obstacles menu
 
 // Configuration & Game Loop Settings

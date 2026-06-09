@@ -36,11 +36,20 @@ game.onUpdate(function () {
     if (activeObstacle == OBSTACLE_SURVIVE && survivalTimer > 0) {
         survivalTimer -= 33 // Approximate delta time for 30 FPS
         if (survivalTimer <= 0) {
-            survivalTimer = 0
-            // Spawn the diamond physically in the grid now that time is up
-            rawSetTile(goalCol, goalRow, DIAMOND)
-            if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
-            music.playTone(440, 500)
+            if (survivalPhase == 1) {
+                // Prep phase is over, start survive phase
+                survivalPhase = 2
+                survivalTimer = randint(120000, 300000) // 2-5 minutes
+                music.playTone(523, 200)
+                music.playTone(493, 300)
+            } else if (survivalPhase == 2) {
+                // Survive phase is over, spawn diamond
+                survivalPhase = 0
+                survivalTimer = 0
+                rawSetTile(goalCol, goalRow, DIAMOND)
+                if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+                music.playTone(440, 500)
+            }
         }
     }
 
@@ -54,6 +63,7 @@ game.onUpdate(function () {
         updateDemoMode()
     } else {
         updateFacing()
+        autoAlignPlayer()
     }
 
     // Update the visual representation of the player's facing direction and animation state
@@ -94,20 +104,9 @@ game.onUpdate(function () {
     // Goal collision detection
     if (getTileId(playerCol(), playerRow()) == DIAMOND) {
         if (activeObstacle == OBSTACLE_TOLL) {
-            // Check if player has required toll resources
-            if (invWood >= tollWood && invStone >= tollStone) {
-                invWood -= tollWood
-                invStone -= tollStone
-                finishLevel()
-            } else {
-                // Not enough resources: physically bounce the player away from the diamond center
-                let dx = player.x - (goalCol * TILE + 8)
-                let dy = player.y - (goalRow * TILE + 8)
-                if (dx === 0 && dy === 0) dx = 1 // Prevent divide-by-zero or zero-push
-                player.x += Math.sign(dx) * 8
-                player.y += Math.sign(dy) * 8
-                music.playTone(131, 100) // Rejection sound
-            }
+            gameState = TOLL_DIALOG
+            stopPlayer()
+            stopEnemies()
         } else {
             // Standard level completion
             finishLevel()
@@ -124,12 +123,18 @@ scene.createRenderable(100, function (target: Image, camera: scene.Camera) {
     if (gameState == TITLE) drawTitle(target)
     else if (gameState == OPTIONS) drawOptions(target)
     else if (gameState == DIFFICULTY) drawDifficultyMenu(target)
+    else if (gameState == OBSTACLES) drawObstaclesMenu(target)
     else if (gameState == INTRO) drawIntro(target)
     else if (gameState == PLAYING) {
         drawGoalPointer(target)
         drawResourceHud(target)
         drawInventory(target)
         drawDemoPausedBanner(target)
+    } else if (gameState == TOLL_DIALOG) {
+        drawGoalPointer(target)
+        drawResourceHud(target)
+        drawInventory(target)
+        drawTollDialog(target)
     } else if (gameState == SAVING) {
         drawResourceHud(target)
         drawInventory(target)

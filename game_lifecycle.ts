@@ -104,11 +104,12 @@ function setupLevel() {
     }
 
     if (activeObstacle == OBSTACLE_SURVIVE) {
-        survivalTimer = 60000 // 60 seconds
+        survivalPhase = 1 // Prep phase
+        survivalTimer = 120000 // 120 seconds (2 mins)
     } else if (activeObstacle == OBSTACLE_TOLL) {
-        // Toll scales up with the level depth
-        tollWood = 5 + level * 2
-        tollStone = 2 + level
+        // Toll scales up with the level depth, randomly picks a single material requirement
+        tollMat = randint(0, 4) // MAT_DIRT to MAT_BONE
+        tollAmount = randint(5, 10)
     }
 
     generateWorld() // Physically generate the grid layout

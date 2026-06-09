@@ -187,6 +187,37 @@ function updateFacing() {
     }
 }
 
+function autoAlignPlayer() {
+    if (player == null || gameState != PLAYING || isDemoActive() || inventoryOpen) return
+    
+    // Auto-align gently pushes the player to the center of the column or row they are traveling in,
+    // so that they don't get snagged on the corners of solid blocks.
+    let px = player.x
+    let py = player.y
+    let centerColX = Math.floor(px / TILE) * TILE + 8
+    let centerRowY = Math.floor(py / TILE) * TILE + 8
+    
+    let isMovingX = Math.abs(player.vx) > 0
+    let isMovingY = Math.abs(player.vy) > 0
+
+    let alignSpeed = 2
+
+    // Only align if moving purely on one axis (not diagonally)
+    if (isMovingX && !isMovingY) {
+        if (Math.abs(py - centerRowY) > 1) {
+            player.y += getSign(centerRowY - py) * alignSpeed
+        } else {
+            player.y = centerRowY
+        }
+    } else if (isMovingY && !isMovingX) {
+        if (Math.abs(px - centerColX) > 1) {
+            player.x += getSign(centerColX - px) * alignSpeed
+        } else {
+            player.x = centerColX
+        }
+    }
+}
+
 function updateTargetCursor() {
     if (targetCursor == null) return
 
@@ -323,7 +354,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == DIFFICULTY) {
         difficultyChoice += -1
-        if (difficultyChoice < 0) difficultyChoice = 1
+        if (difficultyChoice < 0) difficultyChoice = 2
         return
     }
 
@@ -370,7 +401,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == DIFFICULTY) {
         difficultyChoice += 1
-        if (difficultyChoice > 1) difficultyChoice = 0
+        if (difficultyChoice > 2) difficultyChoice = 0
         return
     }
 
@@ -486,7 +517,12 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             loadChoices = getSaveList()
             loadChoicePos = 0
             menuScrollY = 0
-        } else if (optionChoice == 5) {
+        }
+        return
+    }
+
+    if (gameState == DIFFICULTY) {
+        if (difficultyChoice == 2) {
             gameState = OBSTACLES
             obstacleChoicePos = 0
             menuScrollY = 0
@@ -498,6 +534,29 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         if (obstacleChoicePos == 0) optRiver = !optRiver
         else if (obstacleChoicePos == 1) optSurvive = !optSurvive
         else if (obstacleChoicePos == 2) optToll = !optToll
+        return
+    }
+
+    if (gameState == TOLL_DIALOG) {
+        let current = 0
+        if (tollMat == MAT_DIRT) current = invDirt
+        else if (tollMat == MAT_STONE) current = invStone
+        else if (tollMat == MAT_WOOD) current = invWood
+        else if (tollMat == MAT_LEAVES) current = invLeaves
+        else if (tollMat == MAT_BONE) current = invBones
+
+        if (current >= tollAmount) {
+            if (tollMat == MAT_DIRT) invDirt -= tollAmount
+            else if (tollMat == MAT_STONE) invStone -= tollAmount
+            else if (tollMat == MAT_WOOD) invWood -= tollAmount
+            else if (tollMat == MAT_LEAVES) invLeaves -= tollAmount
+            else if (tollMat == MAT_BONE) invBones -= tollAmount
+
+            gameState = PLAYING
+            finishLevel()
+        } else {
+            music.playTone(131, 100)
+        }
         return
     }
 
@@ -545,6 +604,19 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (isDemoActive()) {
         toggleDemoPause()
+        return
+    }
+
+    if (gameState == TOLL_DIALOG) {
+        gameState = PLAYING
+        // Bounce player so they don't immediately re-trigger
+        let dx = player.x - (goalCol * TILE + 8)
+        let dy = player.y - (goalRow * TILE + 8)
+        if (dx === 0 && dy === 0) dx = 1
+        player.x += Math.sign(dx) * 8
+        player.y += Math.sign(dy) * 8
+        resumeEnemies()
+        resumePlayer()
         return
     }
 

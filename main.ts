@@ -64,6 +64,19 @@ game.onUpdate(function () {
         }
     }
 
+    for (let skel of sprites.allOfKind(SpriteKind.Skeleton)) {
+        let sCol = Math.floor(skel.x / TILE)
+        let sRow = Math.floor(skel.y / TILE)
+
+        if (getTileId(sCol, sRow) == SPIKES) {
+            setTile(sCol, sRow, GRASS)
+            forgetSkeleton(skel)
+            skel.destroy(effects.fire, 200)
+            breakEffect(sCol, sRow)
+            updateSkeletonTargeting()
+        }
+    }
+
     if (getTileId(playerCol(), playerRow()) == DIAMOND) {
         finishLevel()
     }

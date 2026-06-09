@@ -129,7 +129,7 @@ function updatePlayerAnim() {
 
 function playPlayerAttack(dx: number, dy: number) {
     if (player == null) return
-    playerAttackUntil = game.runtime() + 220
+    playerAttackUntil = game.runtime() + ATTACK_DURATION_MS
     playerAnim = "attack"
 
     if (dx < 0) {
@@ -295,6 +295,9 @@ function performTargetAction() {
             }
         }
     }
+
+    // No valid action found — play a short error tone as feedback
+    music.playTone(131, 40)
 }
 
 
@@ -430,7 +433,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == TITLE) {
         if (titleChoice == 0) startGame()
-        else gameState = OPTIONS
+        else { gameState = OPTIONS; menuScrollY = 0 }
         return
     }
 
@@ -461,11 +464,12 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         } else if (optionChoice == 3) {
             gameState = DIFFICULTY
             difficultyChoice = 0
+            menuScrollY = 0
         } else if (optionChoice == 4) {
             gameState = LOADING
-            let q = settings.readString("saveQueue") || ""
-            loadChoices = q.length > 0 ? q.split(",") : []
+            loadChoices = getSaveList()
             loadChoicePos = 0
+            menuScrollY = 0
         }
         return
     }
@@ -476,62 +480,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         } else {
             let svName = saveChars.charAt(saveNameIndices[0]) + saveChars.charAt(saveNameIndices[1]) + saveChars.charAt(saveNameIndices[2])
             if (game.ask("Save as " + svName + "?", "A=Yes B=No")) {
-                let q = settings.readString("saveQueue") || ""
-                let arr = q.length > 0 ? q.split(",") : []
-
-                let existingIdx = -1
-                for (let i = 0; i < arr.length; i++) {
-                    if (arr[i] == svName) existingIdx = i
-                }
-
-                if (existingIdx == -1) arr.push(svName)
-                else {
-                    arr.splice(existingIdx, 1)
-                    arr.push(svName)
-                }
-
-                while (arr.length > 5) {
-                    let oldSave = arr.shift()
-                    settings.remove("sav_" + oldSave + "_data")
-                    settings.remove("sav_" + oldSave + "_map")
-                }
-
-                settings.writeString("saveQueue", arr.join(","))
-
-                // Pack 6 tiles per int to compress 2304 tiles into 384 numbers for hardware safety
-                let mapArr: number[] = []
-                for (let i = 0; i < MAP_W * MAP_H; i += 6) {
-                    let packed = 0;
-                    for (let j = 0; j < 6; j++) {
-                        let id = world.getNumber(NumberFormat.UInt8LE, 4 + i + j);
-                        packed |= (id << (j * 4));
-                    }
-                    mapArr.push(packed);
-                }
-                settings.writeNumberArray("sav_" + svName + "_map", mapArr)
-
-                let zData: number[] = []
-                for (let z of sprites.allOfKind(SpriteKind.Enemy)) {
-                    let idx = zombieIndex(z)
-                    let mode = idx >= 0 ? zombieModes[idx] : 0
-                    zData.push(z.x)
-                    zData.push(z.y)
-                    zData.push(mode)
-                }
-
-                let data = [
-                    level, info.life(), invDirt, invStone, invWood, invLeaves, invBones,
-                    player.x, player.y, theme, goalCol, goalRow,
-                    zData.length / 3
-                ]
-                for (let i = 0; i < zData.length; i++) data.push(zData[i])
-
-                settings.writeNumberArray("sav_" + svName + "_data", data)
-
-                gameState = PLAYING
-                inventoryOpen = false
-                resumeEnemies()
-                resumePlayer()
+                saveGame(svName)
             }
         }
         return
@@ -540,83 +489,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == LOADING) {
         if (loadChoices.length > 0) {
             let svName = loadChoices[loadChoicePos]
-            let data = settings.readNumberArray("sav_" + svName + "_data")
-            let mapArr = settings.readNumberArray("sav_" + svName + "_map")
-
-            if (data && data.length >= 12 && mapArr && mapArr.length == 384) {
-                destroyLevelSprites()
-                demoMode = false
-
-                level = data[0]
-                info.setLife(data[1])
-                invDirt = data[2]
-                invStone = data[3]
-                invWood = data[4]
-                invLeaves = data[5]
-                let offset = data.length >= 13 ? 1 : 0
-                invBones = offset ? data[6] : 0
-                let px = data[6 + offset]
-                let py = data[7 + offset]
-                theme = data[8 + offset]
-                goalCol = data[9 + offset]
-                goalRow = data[10 + offset]
-                let zCount = data[11 + offset]
-
-                // Unpack binary map
-                for (let i = 0; i < mapArr.length; i++) {
-                    let packed = mapArr[i];
-                    for (let j = 0; j < 6; j++) {
-                        let id = (packed >> (j * 4)) & 0xF;
-                        world.setNumber(NumberFormat.UInt8LE, 4 + i * 6 + j, id);
-                    }
-                }
-
-                for (let row = 0; row < MAP_H; row++) {
-                    for (let col = 0; col < MAP_W; col++) {
-                        layout.setPixel(col, row, getTileId(col, row))
-                    }
-                }
-
-                initTiles()
-                tiles.setTilemap(tiles.createTilemap(world, layout, tileImages, TileScale.Sixteen))
-                refreshMap()
-
-                player = sprites.create(pDown, SpriteKind.Player)
-                player.setPosition(px, py)
-                player.z = 10
-                scene.cameraFollowSprite(player)
-                playerAnim = ""
-                playerAttackUntil = 0
-                setPlayerAnim("idle-down", [pDown], 120, false)
-
-                targetCursor = sprites.create(cursorImg, SpriteKind.Food)
-                targetCursor.z = 50
-                targetCursor.setFlag(SpriteFlag.Invisible, true)
-
-                createDiamondMarker()
-
-                for (let i = 0; i < zCount; i++) {
-                    let zx = data[12 + i * 3]
-                    let zy = data[13 + i * 3]
-                    let zm = data[14 + i * 3]
-
-                    let zombie = sprites.create(zIdle, SpriteKind.Enemy)
-                    zombie.z = 5
-                    zombie.setPosition(zx, zy)
-                    rememberZombie(zombie)
-                    setZombieMode(zombie, zm)
-                }
-
-                maxZombies = 5 + level
-                if (maxZombies > 10) maxZombies = 10
-
-                invincible = false
-                inventoryOpen = false
-                gameState = PLAYING
-
-                resumePlayer()
-                playLevelMusic()
-            } else {
+            if (!loadGame(svName)) {
                 gameState = OPTIONS
             }
         }
@@ -677,6 +550,7 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (!inventoryOpen) {
         inventoryOpen = true
+        menuScrollY = 0
         stopPlayer()
         stopEnemies()
     } else {
@@ -725,17 +599,17 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite: Sprite,
     let currentRow = Math.floor(sprite.y / TILE)
 
     if (!isSolid(getTileId(nextCol, currentRow))) {
-        sprite.x += pushX * 10
+        sprite.x += pushX * PUSH_DISTANCE
     }
     if (!isSolid(getTileId(currentCol, nextRow))) {
-        sprite.y += pushY * 10
+        sprite.y += pushY * PUSH_DISTANCE
     }
 
     forgetZombie(otherSprite)
     otherSprite.destroy(effects.disintegrate, 150)
 
     control.runInParallel(function () {
-        pause(500)
+        pause(INVINCIBILITY_MS)
         invincible = false
     })
 })

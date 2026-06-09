@@ -13,6 +13,8 @@
         "enemies.ts",
         "demo.ts",
         "player.ts",
+        "save.ts",
+        "game_lifecycle.ts",
         "ui.ts",
         "main.ts",
         "README.md",

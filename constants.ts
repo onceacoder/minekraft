@@ -41,6 +41,16 @@ const DEMO_DIAGONAL_SPEED = 42
 const INFINITY = 0
 const MUSIC_TEMPO = 130
 
+const ZOMBIE_AGGRO_RANGE = 32
+const ZOMBIE_SPAWN_MIN_DIST = 12
+const ZOMBIE_SPAWN_INTERVAL_MS = 5000
+const ZOMBIE_MODE_CHECK_MS = 250
+const ATTACK_DURATION_MS = 220
+const SKELETON_WALK_SPEED = 40
+const SKELETON_PATH_INTERVAL = 15
+const PUSH_DISTANCE = 10
+const INVINCIBILITY_MS = 500
+
 
 // --------------------------------------------------------------------------
 // GLOBAL STATE

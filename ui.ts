@@ -1,193 +1,12 @@
 // --------------------------------------------------------------------------
-// Level lifecycle and pause helpers.
-
-// --------------------------------------------------------------------------
-function stopPlayer() {
-    if (player == null) return
-    controller.moveSprite(player, 0, 0)
-    player.vx = 0
-    player.vy = 0
-}
-
-function resumePlayer() {
-    if (player == null) return
-    if (gameState != PLAYING || inventoryOpen) {
-        controller.moveSprite(player, 0, 0)
-        player.vx = 0
-        player.vy = 0
-        return
-    }
-
-    if (demoMode) {
-        controller.moveSprite(player, 0, 0)
-    } else {
-        controller.moveSprite(player, PLAYER_SPEED, PLAYER_SPEED)
-    }
-}
-
-function stopEnemies() {
-    for (let zombie of sprites.allOfKind(SpriteKind.Enemy)) {
-        zombie.follow(player, 0) // Fully stops the physics engine pathfinding
-        zombie.vx = 0
-        zombie.vy = 0
-    }
-}
-
-function destroyLevelSprites() {
-    for (let s of sprites.allOfKind(SpriteKind.Player)) {
-        stopCoreAnimation(s)
-        s.destroy()
-    }
-    for (let e of sprites.allOfKind(SpriteKind.Enemy)) {
-        stopCoreAnimation(e)
-        e.destroy()
-    }
-    for (let skel of sprites.allOfKind(SpriteKind.Skeleton)) {
-        stopCoreAnimation(skel)
-        skel.destroy()
-    }
-    for (let f of sprites.allOfKind(SpriteKind.Food)) f.destroy()
-
-    player = null
-    targetCursor = null
-    diamondMarker = null
-    zombieRefs = []
-    zombieModes = []
-    skeletonRefs = []
-    skeletonTargets = []
-
-    // Safety clear for entire custom animation engine pipeline
-    animSprites = []
-    animFrames = []
-    animIntervals = []
-    animTimers = []
-    animIndices = []
-    animLoops = []
-}
-
-function createDiamondMarker() {
-    diamondMarker = sprites.create(blank16, SpriteKind.Food)
-    diamondMarker.setPosition(goalCol * TILE + 8, goalRow * TILE + 8)
-    diamondMarker.z = 30
-    diamondMarker.setFlag(SpriteFlag.Ghost, true)
-    diamondMarker.startEffect(effects.coolRadial)
-}
-
-function updateDiamondMarker() {
-    if (diamondMarker != null && gameState == PLAYING) {
-        diamondMarker.setPosition(goalCol * TILE + 8, goalRow * TILE + 8)
-    }
-}
-
-function moveInventorySelection(amount: number) {
-    selectedMat += amount
-    if (selectedMat < MAT_DIRT) selectedMat = MAT_SAVE
-    if (selectedMat > MAT_SAVE) selectedMat = MAT_DIRT
-}
-
-function setupLevel() {
-    destroyLevelSprites()
-    chooseTheme()
-    initTiles()
-    generateWorld()
-
-    tiles.setTilemap(tiles.createTilemap(world, layout, tileImages, TileScale.Sixteen))
-    refreshMap()
-
-    player = sprites.create(pDown, SpriteKind.Player)
-    tiles.placeOnTile(player, tiles.getTileLocation(24, 10))
-    player.z = 10
-    scene.cameraFollowSprite(player)
-    playerAnim = ""
-    playerAttackUntil = 0
-    setPlayerAnim("idle-down", [pDown], 120, false)
-
-    targetCursor = sprites.create(cursorImg, SpriteKind.Food)
-    targetCursor.z = 50
-    targetCursor.setFlag(SpriteFlag.Invisible, true)
-
-    createDiamondMarker()
-
-    maxZombies = 5 + level + diffZombieCountOffset
-    if (maxZombies < 0) maxZombies = 0
-    if (maxZombies > 15) maxZombies = 15
-
-    invincible = false
-    inventoryOpen = false
-    gameState = PLAYING
-
-    resumePlayer()
-    playLevelMusic()
-}
-
-function beginLevel(levelNo: number) {
-    level = levelNo
-
-    if (selectedLevels == INFINITY || selectedLevels > 1) {
-        gameState = INTRO
-        destroyLevelSprites()
-
-        control.runInParallel(function () {
-            pause(1200)
-            setupLevel()
-        })
-    } else {
-        setupLevel()
-    }
-}
-
-function startGame() {
-    invDirt = 0
-    invStone = 0
-    invWood = 0
-    invLeaves = 0
-    invBones = 0
-    selectedMat = MAT_DIRT
-
-    if (demoMode) {
-        selectedLevels = INFINITY
-        selectedHealth = INFINITY
-    }
-
-    if (selectedHealth == INFINITY) info.setLife(7)
-    else info.setLife(selectedHealth)
-
-    beginLevel(1)
-}
-
-function returnToTitleFromVictory() {
-    music.stopAllSounds()
-    destroyLevelSprites()
-    gameState = TITLE
-    titleChoice = 0
-    optionChoice = 0
-    demoPaused = false
-    demoActionCooldown = 0
-    demoHarvestCooldown = 0
-    demoBuildCooldown = 0
-    demoPauseUntil = 0
-    scene.centerCameraAt(80, 60)
-}
-
-function finishLevel() {
-    stopLevelMusic()
-
-    if (selectedLevels == INFINITY) {
-        beginLevel(level + 1)
-    } else if (level < selectedLevels) {
-        beginLevel(level + 1)
-    } else {
-        gameState = VICTORY
-        destroyLevelSprites()
-        playVictoryJingle()
-    }
-}
-
-
-// --------------------------------------------------------------------------
 // HUD and screen rendering helpers.
 
 // --------------------------------------------------------------------------
+function printBold(target: Image, text: string, x: number, y: number, color: number) {
+    target.print(text, x, y, color)
+    target.print(text, x + 1, y, color)
+}
+
 function clampScreen(value: number, minValue: number, maxValue: number): number {
     if (value < minValue) return minValue
     if (value > maxValue) return maxValue
@@ -295,7 +114,7 @@ function drawTitle(target: Image) {
 
     target.fillRect(12, 5, 136, 42, 15)
     target.drawRect(12, 5, 136, 42, 1)
-    target.print("MINEKRAFT", 52, 12, 1)
+    printBold(target, "MINEKRAFT", 52, 12, 1)
     target.print("by Luca", 62, 31, 1)
 
     drawBlockyMiner(target, 35, 58)
@@ -319,10 +138,23 @@ function drawInfinity(target: Image, x: number, y: number, colour: number) {
     target.setPixel(x + 8, y + 4, colour)
 }
 
+function drawScrollIndicator(target: Image, x: number, y: number, viewHeight: number, totalHeight: number, scrollY: number, color: number) {
+    if (totalHeight <= viewHeight) return;
+    let thumbHeight = Math.floor((viewHeight / totalHeight) * viewHeight);
+    if (thumbHeight < 4) thumbHeight = 4;
+    let maxScroll = totalHeight - viewHeight;
+    let scrollRatio = maxScroll > 0 ? scrollY / maxScroll : 0;
+    if (scrollRatio < 0) scrollRatio = 0;
+    if (scrollRatio > 1) scrollRatio = 1;
+    let thumbY = y + Math.floor(scrollRatio * (viewHeight - thumbHeight));
+    
+    target.fillRect(x, thumbY, 2, thumbHeight, color);
+}
+
 function drawOptions(target: Image) {
     target.fillRect(0, 0, 160, 120, 15)
     target.drawRect(10, 12, 140, 100, 1)
-    target.print("SETTINGS", 56, 20, 1)
+    printBold(target, "SETTINGS", 56, 20, 1)
 
     let itemHeight = 18;
     let selectedY = optionChoice * itemHeight;
@@ -367,13 +199,14 @@ function drawOptions(target: Image) {
 
     // Drawing clipped menu viewport prevents overlapping the bottom legend
     target.drawTransparentImage(menuView, 12, 38)
+    drawScrollIndicator(target, 146, 38, 60, 5 * itemHeight, menuScrollY, 1)
     target.print("A:SELECT B:BACK", 26, 102, 1)
 }
 
 function drawDifficultyMenu(target: Image) {
     target.fillRect(0, 0, 160, 120, 15)
     target.drawRect(10, 12, 140, 100, 1)
-    target.print("DIFFICULTY", 42, 20, 1)
+    printBold(target, "DIFFICULTY", 42, 20, 1)
 
     let itemHeight = 24;
     let selectedY = difficultyChoice * itemHeight;
@@ -402,6 +235,7 @@ function drawDifficultyMenu(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 12, 38)
+    drawScrollIndicator(target, 146, 38, 60, 2 * itemHeight, menuScrollY, 1)
     target.print("L/R:ADJ B:BACK", 26, 102, 1)
 }
 
@@ -439,7 +273,7 @@ function drawInventory(target: Image) {
 
     target.fillRect(16, 24, 128, 92, 1)
     target.drawRect(16, 24, 128, 92, 15)
-    target.print("Inventory", 48, 28, 15)
+    printBold(target, "Inventory", 48, 28, 15)
 
     let itemHeight = 18;
     let selectedY = selectedMat * itemHeight;
@@ -467,13 +301,14 @@ function drawInventory(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 20, 42)
+    drawScrollIndicator(target, 138, 42, 60, 6 * itemHeight, menuScrollY, 15)
     target.print("A:select B:close", 20, 104, 15)
 }
 
 function drawSaving(target: Image) {
     target.fillRect(30, 30, 100, 60, 15)
     target.drawRect(30, 30, 100, 60, 1)
-    target.print("SAVE GAME", 44, 38, 1)
+    printBold(target, "SAVE GAME", 44, 38, 1)
 
     for (let i = 0; i < 3; i++) {
         let charX = 56 + i * 16
@@ -490,7 +325,7 @@ function drawSaving(target: Image) {
 
 function drawLoading(target: Image) {
     target.fillRect(0, 0, 160, 120, 15)
-    target.print("LOAD GAME", 46, 10, 1)
+    printBold(target, "LOAD GAME", 46, 10, 1)
 
     let itemHeight = 16;
     let selectedY = loadChoicePos * itemHeight;
@@ -517,6 +352,7 @@ function drawLoading(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 10, 32)
+    drawScrollIndicator(target, 150, 32, 60, loadChoices.length * itemHeight, menuScrollY, 1)
     target.print("A:Load  B:Cancel", 18, 105, 1)
 }
 
@@ -531,9 +367,9 @@ function drawVictory(target: Image) {
 
     target.fillRect(12, 14, 136, 56, 15)
     target.drawRect(12, 14, 136, 56, 1)
-    target.print("MINEKRAFT", 52, 22, 1)
-    target.print("GAME COMPLETE", 34, 38, 1)
-    target.print("WELL DONE!", 48, 52, 1)
+    printBold(target, "MINEKRAFT", 52, 22, 1)
+    printBold(target, "GAME COMPLETE", 34, 38, 1)
+    printBold(target, "WELL DONE!", 48, 52, 1)
 
     drawBlockyMiner(target, 30, 76)
     drawBlockyZombie(target, 114, 76)
@@ -549,7 +385,7 @@ function drawGameOver(target: Image) {
     target.fillRect(12, 30, 136, 60, 1)
     target.drawRect(12, 30, 136, 60, 2)
 
-    target.print("GAME OVER", 44, 45, 2)
+    printBold(target, "GAME OVER", 44, 45, 2)
     target.print("press A", 54, 70, 2)
 }
 
@@ -558,7 +394,7 @@ function drawDemoPausedBanner(target: Image) {
 
     target.fillRect(10, 44, 140, 32, 1)
     target.drawRect(10, 44, 140, 32, 15)
-    target.print("PAUSED", 62, 50, 15)
+    printBold(target, "PAUSED", 62, 50, 15)
     target.print("press A or B to resume", 18, 64, 15)
 }
 

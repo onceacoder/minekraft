@@ -56,7 +56,7 @@ function makeCadence(scale: string[], home: string, seed: number): string[] {
     return [
         scale[boundedIndex(seed + 1, scale.length)], scale[boundedIndex(seed + 2, scale.length)],
         scale[boundedIndex(seed + 3, scale.length)], scale[boundedIndex(seed + 2, scale.length)],
-        stepDown(scale, home), home, stepDown(scale, home),
+        stepDown(scale, home), home, stepDown(scale, home), home
     ]
 }
 

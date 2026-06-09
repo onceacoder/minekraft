@@ -80,7 +80,7 @@ function getGridDist(x1: number, y1: number, x2: number, y2: number): number {
 }
 
 function updateSkeletonTargeting() {
-    let zombies = sprites.allOfKind(SpriteKind.Enemy)
+    let zombies = zombieRefs
     if (zombies.length == 0) {
         for (let i = 0; i < skeletonRefs.length; i++) {
             skeletonTargets[i] = null
@@ -140,7 +140,7 @@ let pathUpdateCounter = 0
 function tickSkeletons() {
     if (gameState != PLAYING) return
     pathUpdateCounter++
-    let doPathing = (pathUpdateCounter % 15 == 0)
+    let doPathing = (pathUpdateCounter % SKELETON_PATH_INTERVAL == 0)
 
     let needsRetarget = false
     for (let i = 0; i < skeletonTargets.length; i++) {
@@ -218,7 +218,7 @@ function tickSkeletons() {
                 else if (sy > ty && !isSolid(getTileId(sx, sy - 1))) nextStepY = sy - 1
             }
             
-            let walkSpeed = 40
+            let walkSpeed = SKELETON_WALK_SPEED
             if (nextStepX > sx) { skel.vx = walkSpeed; skel.vy = 0; }
             else if (nextStepX < sx) { skel.vx = -walkSpeed; skel.vy = 0; }
             else if (nextStepY > sy) { skel.vy = walkSpeed; skel.vx = 0; }
@@ -247,7 +247,7 @@ function resumeEnemies() {
 
 // --------------------------------------------------------------------------
 function zombieCount(): number {
-    return sprites.allOfKind(SpriteKind.Enemy).length
+    return zombieRefs.length
 }
 
 function spawnZombie() {
@@ -261,10 +261,12 @@ function spawnZombie() {
         spawnCol = randint(2, MAP_W - 3)
         spawnRow = randint(2, MAP_H - 3)
 
-        if (getTileId(spawnCol, spawnRow) == GRASS && Math.abs(spawnCol - playerCol()) + Math.abs(spawnRow - playerRow()) > 12) {
+        if (getTileId(spawnCol, spawnRow) == GRASS && Math.abs(spawnCol - playerCol()) + Math.abs(spawnRow - playerRow()) > ZOMBIE_SPAWN_MIN_DIST) {
             break
         }
     }
+
+    if (getTileId(spawnCol, spawnRow) != GRASS) return
 
     let zombie = sprites.create(zIdle, SpriteKind.Enemy)
     zombie.z = 5
@@ -273,15 +275,15 @@ function spawnZombie() {
     setZombieMode(zombie, 0)
 }
 
-game.onUpdateInterval(5000, function () {
+game.onUpdateInterval(ZOMBIE_SPAWN_INTERVAL_MS, function () {
     spawnZombie()
 })
 
-game.onUpdateInterval(250, function () {
+game.onUpdateInterval(ZOMBIE_MODE_CHECK_MS, function () {
     if (gameState != PLAYING || player == null || inventoryOpen) return
 
-    for (let zombie of sprites.allOfKind(SpriteKind.Enemy)) {
-        let near = Math.abs(player.x - zombie.x) < 32 && Math.abs(player.y - zombie.y) < 32
+    for (let zombie of zombieRefs) {
+        let near = Math.abs(player.x - zombie.x) < ZOMBIE_AGGRO_RANGE && Math.abs(player.y - zombie.y) < ZOMBIE_AGGRO_RANGE
         if (near) setZombieMode(zombie, 1)
         else setZombieMode(zombie, 0)
     }

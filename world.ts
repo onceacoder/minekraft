@@ -29,6 +29,7 @@ let dungeonWallTile: Image = null
 let keyHoleTile: Image = null
 let dungeonFloorTile: Image = null
 let keyTile: Image = null
+let campfireTile: Image = null
 let tileImages: Image[] = []
 
 // Scaled-down 8x8 versions of tile images, derived from the actual tiles
@@ -487,9 +488,27 @@ function makeWater(): Image {
     im.drawLine(11, 14, 15, 14, 9)
     // Sparkle highlights
     im.setPixel(4, 1, 1)
-    im.setPixel(12, 5, 1)
     im.setPixel(3, 9, 1)
     im.setPixel(13, 13, 1)
+    return im
+}
+
+function makeCampfire(): Image {
+    let im = image.create(16, 16)
+    im.fill(14) // Dark base for ash/wood
+    im.drawRect(0, 0, 16, 16, 15) // Border
+    // Wood logs at the base
+    im.drawLine(3, 13, 12, 13, 4)
+    im.drawLine(4, 12, 11, 12, 14)
+    // Fire base (red)
+    im.fillRect(5, 9, 6, 3, 2)
+    // Fire core (orange)
+    im.fillRect(6, 7, 4, 4, 4)
+    // Fire tips (yellow)
+    im.drawLine(7, 4, 7, 6, 5)
+    im.drawLine(8, 5, 8, 8, 5)
+    im.setPixel(6, 6, 5)
+    im.setPixel(9, 7, 5)
     return im
 }
 
@@ -527,12 +546,13 @@ function initTiles() {
     keyHoleTile = makeKeyHole()
     dungeonFloorTile = makeDungeonFloor()
     keyTile = makeKey()
+    campfireTile = makeCampfire()
 
     tileImages = [
         grassTile, dirtTile, stoneTile, bedrockTile,
         dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile, waterTile,
         ironOreTile, bricksTile, stoneBlockTile, timberTile, tallGrassTile, hayTile,
-        caveEntranceTile, dungeonWallTile, keyHoleTile, dungeonFloorTile, keyTile
+        caveEntranceTile, dungeonWallTile, keyHoleTile, dungeonFloorTile, keyTile, campfireTile
     ]
 
     // Generate scaled-down 8x8 mini icons from actual tile images
@@ -596,7 +616,7 @@ function getTileId(col: number, row: number): number {
 function isSolid(tileId: number): boolean {
     return tileId == DIRT || tileId == STONE || tileId == BEDROCK || tileId == DIRT_WALL || tileId == WOOD || tileId == WATER || 
            tileId == IRON_ORE || tileId == BRICKS || tileId == STONE_BLOCK || tileId == TIMBER || 
-           tileId == DUNGEON_WALL || tileId == KEY_HOLE
+           tileId == DUNGEON_WALL || tileId == KEY_HOLE || tileId == CAMPFIRE
 }
 
 function rawSetTile(col: number, row: number, tileId: number) {
@@ -638,6 +658,15 @@ function makeTree(cx: number, cy: number) {
     if (inBounds(cx, cy + 1) && randint(0, 100) < 70) rawSetTile(cx, cy + 1, TALL_GRASS)
 }
 
+/**
+ * Procedural Map Generation Algorithm:
+ * ------------------------------------
+ * Generates the overworld map dynamically every time the game starts.
+ * 1. Base initialization (Grass and Bedrock borders).
+ * 2. Scatter clusters of trees and resources (Dirt/Stone/Iron/Bone).
+ * 3. Drunkard's Walk: Carve a guaranteed passable path from spawn to goal.
+ * 4. Goal placement (Diamond) and optional obstacles (Rivers/Dungeons/Tolls).
+ */
 function generateWorld() {
     // 1. Fill entire map with Grass
     for (let col = 0; col < MAP_W; col++) {
@@ -728,54 +757,9 @@ function generateWorld() {
     goalRow = 44
     rawSetTile(goalCol, goalRow, DIAMOND)
 
-    // Build a decorative stone enclosure around the Diamond entrance (only if obstacles are enabled)
-    if (activeObstacle != OBSTACLE_NONE) {
-        for (let gx = routeX - 4; gx <= routeX + 4; gx++) {
-            if (inBounds(gx, 40)) rawSetTile(gx, 40, STONE)
-        }
-
-        // Leave a 3-tile wide entrance hole in the enclosure
-        rawSetTile(routeX, 40, GRASS)
-        rawSetTile(routeX - 1, 40, GRASS)
-        rawSetTile(routeX + 1, 40, GRASS)
-    }
-    
     // Final spawn clearing to ensure player doesn't spawn in a tree
     clearArea(24, 10, 5)
 
-    if (activeObstacle == OBSTACLE_DUNGEON) {
-        // Clear the stone enclosure and replace with an impassable dungeon wall
-        for (let gx = routeX - 4; gx <= routeX + 4; gx++) {
-            if (inBounds(gx, 40)) rawSetTile(gx, 40, GRASS)
-        }
-        for (let dwx = routeX - 2; dwx <= routeX + 2; dwx++) {
-            for (let dwy = 42; dwy <= 46; dwy++) {
-                if (dwx == routeX && dwy == 44) continue // Keep diamond
-                if (inBounds(dwx, dwy)) rawSetTile(dwx, dwy, DUNGEON_WALL)
-            }
-        }
-        // Place cave entrance
-        rawSetTile(routeX, 41, CAVE_ENTRANCE)
-    }
-
-    // 9. Apply dynamic obstacles (if selected)
-    if (activeObstacle == OBSTACLE_RIVER) {
-        generateRiver()
-    }
-}
-
-// Procedurally cuts a jagged water hazard across the map
-function generateRiver() {
-    let ry = randint(20, 28)
-    for (let rx = 1; rx < MAP_W - 1; rx++) {
-        rawSetTile(rx, ry, WATER)
-        rawSetTile(rx, ry + 1, WATER)
-        if (randint(0, 100) < 50) rawSetTile(rx, ry + 2, WATER)
-        if (randint(0, 100) < 30) rawSetTile(rx, ry - 1, WATER)
-        
-        ry += randint(-1, 1)
-        if (ry < 15) ry = 15
-        if (ry > 35) ry = 35
-    }
+    generateObstacleFeatures(routeX)
 }
 

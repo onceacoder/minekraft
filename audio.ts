@@ -195,6 +195,60 @@ function playDungeonMusic() {
     })
 }
 
+// --------------------------------------------------------------------------
+// Night music – slow, cold, sparse theme
+// --------------------------------------------------------------------------
+const NIGHT_TEMPO = 60
+
+function generateNightTune(seed: number): string[] {
+    let scale = ["A3", "C4", "E4", "G4", "A4"] // A minor pentatonic
+    let home = "A3"
+    
+    // Very sparse, chilling theme
+    let phraseA = [
+        "A3", "E4", "C4", "-", 
+        "A4", "G4", "E4", "-"
+    ]
+    
+    let phraseB = [
+        "-", scale[boundedIndex(seed, scale.length)], "-", scale[boundedIndex(seed+1, scale.length)],
+        "E4", "C4", "A3", "-"
+    ]
+
+    let tune: string[] = []
+    appendMotif(tune, phraseA)
+    appendMotif(tune, phraseB)
+    appendMotif(tune, phraseA)
+    appendMotif(tune, phraseB)
+    return tune
+}
+
+function playNightTune(tune: string[], token: number) {
+    if (musicToken != token) return
+    playTunePart(tune, 0, NIGHT_TEMPO)
+    if (musicToken != token) return
+    playTunePart(tune, 8, NIGHT_TEMPO)
+    if (musicToken != token) return
+    playTunePart(tune, 16, NIGHT_TEMPO)
+    if (musicToken != token) return
+    playTunePart(tune, 24, NIGHT_TEMPO)
+}
+
+function playNightMusic() {
+    if (demoMode) return
+    
+    musicToken += 1
+    let myToken = musicToken
+    let tune = generateNightTune(level)
+
+    control.runInParallel(function () {
+        while (gameState == PLAYING && myToken == musicToken) {
+            playNightTune(tune, myToken)
+            pause(100)
+        }
+    })
+}
+
 /**
  * RPG-style damage sound using raw frequencies.
  */

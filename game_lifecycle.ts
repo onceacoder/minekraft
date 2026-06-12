@@ -97,6 +97,7 @@ function setupLevel() {
     if (optSurvive) activeOpts.push(OBSTACLE_SURVIVE)
     if (optToll) activeOpts.push(OBSTACLE_TOLL)
     if (optDungeon) activeOpts.push(OBSTACLE_DUNGEON)
+    if (optFreeze) activeOpts.push(OBSTACLE_FREEZE)
 
     if (activeOpts.length > 0) {
         // Guarantee no consecutive repeats by filtering out the previous obstacle
@@ -123,6 +124,12 @@ function setupLevel() {
         tollMat = randint(0, 5) // MAT_DIRT to MAT_IRON
         tollAmount = randint(3 + level, 8 + level * 2)
         if (tollAmount > 20) tollAmount = 20
+    } else if (activeObstacle == OBSTACLE_FREEZE) {
+        freezeMeter = FREEZE_METER_MAX
+        campfireCols = []
+        campfireRows = []
+        campfireHealths = []
+        survivalTimer = randint(120000, 180000) // 2-3 minutes survival requirement
     }
 
     generateWorld() // Physically generate the grid layout
@@ -180,10 +187,15 @@ function setupLevel() {
     else if (activeObstacle == OBSTACLE_SURVIVE) showBanner("ZOMBIE SURVIVAL")
     else if (activeObstacle == OBSTACLE_TOLL) showBanner("TOLL ROAD")
     else if (activeObstacle == OBSTACLE_DUNGEON) showBanner("KEY CRAWL")
+    else if (activeObstacle == OBSTACLE_FREEZE) showBanner("FREEZING NIGHT")
     else showBanner("FIND THE DIAMOND")
 
     resumePlayer()
-    playLevelMusic()
+    if (activeObstacle == OBSTACLE_FREEZE) {
+        playNightMusic()
+    } else {
+        playLevelMusic()
+    }
 }
 
 function beginLevel(levelNo: number) {

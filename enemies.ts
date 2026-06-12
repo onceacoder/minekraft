@@ -42,14 +42,30 @@ function setZombieMode(zombie: Sprite, mode: number) {
 
     stopCoreAnimation(zombie)
 
+    // Target Selection:
+    // Zombies default to attacking the player. However, we iterate over the 
+    // `scarecrowRefs` array. If a Scarecrow is closer (using Manhattan distance 
+    // for performance), the zombie will re-aggro onto the Scarecrow instead.
+    let targetSprite = player
+    let bestDist = Math.abs(player.x - zombie.x) + Math.abs(player.y - zombie.y)
+    
+    for (let i = 0; i < scarecrowRefs.length; i++) {
+        let sc = scarecrowRefs[i]
+        let dist = Math.abs(sc.x - zombie.x) + Math.abs(sc.y - zombie.y)
+        if (dist < bestDist) {
+            bestDist = dist
+            targetSprite = sc
+        }
+    }
+
     if (mode == 0) {
-        zombie.follow(player, getZombieSpeed())
+        zombie.follow(targetSprite, getZombieSpeed())
         playCoreAnimation(zombie, [zWalk1, zIdle, zWalk2, zIdle], 150, true)
     } else if (mode == 1) {
-        zombie.follow(player, getZombieSpeed() + 10)
+        zombie.follow(targetSprite, getZombieSpeed() + 10)
         playCoreAnimation(zombie, [zAttack, zIdle], 120, true)
     } else {
-        zombie.follow(player, 0)
+        zombie.follow(null, 0)
         zombie.vx = 0
         zombie.vy = 0
         zombie.setImage(zIdle)
@@ -99,32 +115,100 @@ function updateSkeletonTargeting() {
         let bestUntargeted: Sprite = null
         let bestUntargetedDist = 9999
 
-        let sx = Math.floor(skel.x / TILE)
-        let sy = Math.floor(skel.y / TILE)
+        for (let j = 0; j < zombies.length; j++) {
+            let z = zombies[j]
+            let dist = getGridDist(skel.x, skel.y, z.x, z.y)
+            let alreadyTargeted = skeletonTargets.indexOf(z) >= 0
 
-        for (let z of zombies) {
-            let zx = Math.floor(z.x / TILE)
-            let zy = Math.floor(z.y / TILE)
-            let d = getGridDist(sx, sy, zx, zy)
-
-            if (d < bestDist) {
-                bestDist = d
+            if (dist < bestDist) {
+                bestDist = dist
                 bestTarget = z
             }
-            if (targeted.indexOf(z) < 0 && d < bestUntargetedDist) {
-                bestUntargetedDist = d
+            if (!alreadyTargeted && dist < bestUntargetedDist) {
+                bestUntargetedDist = dist
                 bestUntargeted = z
             }
         }
 
-        if (bestUntargeted != null) {
-            skeletonTargets[i] = bestUntargeted
-            targeted.push(bestUntargeted)
+        let chosenTarget = bestUntargeted || bestTarget
+        skeletonTargets[i] = chosenTarget
+
+        if (chosenTarget && bestDist < 120) {
+            skel.follow(chosenTarget, 25)
+            playCoreAnimation(skel, [sWalk1, sIdle, sWalk2, sIdle], 120, true)
         } else {
-            skeletonTargets[i] = bestTarget
+            skel.follow(null)
+            skel.vx = 0
+            skel.vy = 0
+            playCoreAnimation(skel, [sIdle], 150, true)
         }
     }
 }
+
+// Memory-safe Scarecrow Tracking & Spawning
+// --------------------------------------------------------------------------
+let scIdle: Image = null
+let scWalk: Image = null
+
+function initScarecrowImages() {
+    if (scIdle != null) return
+    scIdle = image.ofBuffer(hex`000400001000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`) // Will overwrite with clone
+    scWalk = scIdle.clone()
+    
+    // Draw a basic straw/wood scarecrow shape
+    scIdle.fillRect(6, 2, 4, 4, 4) // straw head
+    scIdle.fillRect(5, 6, 6, 5, 5) // straw body (yellow/brown)
+    scIdle.fillRect(3, 7, 10, 2, 4) // arms
+    scIdle.fillRect(7, 11, 2, 5, 14) // wooden post leg
+    scIdle.setPixel(6, 3, 15); scIdle.setPixel(9, 3, 15) // eyes
+    scIdle.setPixel(7, 4, 15); scIdle.setPixel(8, 4, 15) // mouth
+    
+    scWalk = scIdle.clone()
+    scWalk.fillRect(7, 11, 2, 5, 0) // remove straight post
+    scWalk.setPixel(6, 11, 14); scWalk.setPixel(6, 12, 14) // wobble leg
+    scWalk.setPixel(7, 13, 14); scWalk.setPixel(8, 14, 14); scWalk.setPixel(9, 15, 14)
+}
+
+function spawnScarecrow(col: number, row: number) {
+    if (scarecrowRefs.length >= 2) {
+        music.playTone(131, 40)
+        showBanner("MAX SCARECROWS")
+        return // Max 2
+    }
+    
+    initScarecrowImages()
+    
+    let sc = sprites.create(scIdle, SpriteKind.Scarecrow)
+    sc.setPosition(col * TILE + 8, row * TILE + 8)
+    sc.z = 15
+    scarecrowRefs.push(sc)
+    
+    // Scarecrows wander extremely slowly
+    sc.vx = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
+    sc.vy = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
+    sc.setBounceOnWall(true)
+    
+    playCoreAnimation(sc, [scIdle, scWalk, scIdle, scWalk], 400, true)
+    
+    music.playTone(262, 50)
+    music.playTone(330, 50)
+}
+
+function updateScarecrowWandering() {
+    for (let i = 0; i < scarecrowRefs.length; i++) {
+        let sc = scarecrowRefs[i]
+        // Randomly change direction occasionally
+        if (Math.percentChance(2)) {
+            sc.vx = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
+            sc.vy = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
+        }
+    }
+}
+
+game.onUpdateInterval(500, function() {
+    if (gameState != PLAYING) return
+    updateScarecrowWandering()
+})
 
 function spawnSkeleton(col: number, row: number) {
     let skel = sprites.create(sIdle, SpriteKind.Skeleton)
@@ -180,6 +264,11 @@ function tickSkeletons() {
         let ty = Math.floor(target.y / TILE)
 
         if (doPathing) {
+            // Skeleton Dijkstra / Manhattan Pathfinding:
+            // Skeletons are "smarter" than zombies. Instead of using standard `.follow()`, 
+            // they check the adjacent 4 tiles (up, down, left, right) towards their target.
+            // If the direct path is solid (e.g., a wall), they will attempt to step sideways 
+            // to navigate around the obstacle. This allows them to navigate dungeons.
             let nextStepX = sx
             let nextStepY = sy
             
@@ -280,9 +369,28 @@ game.onUpdateInterval(ZOMBIE_MODE_CHECK_MS, function () {
     if (gameState != PLAYING || player == null || inventoryOpen) return
 
     for (let zombie of zombieRefs) {
-        let near = Math.abs(player.x - zombie.x) < ZOMBIE_AGGRO_RANGE && Math.abs(player.y - zombie.y) < ZOMBIE_AGGRO_RANGE
-        if (near) setZombieMode(zombie, 1)
-        else setZombieMode(zombie, 0)
+        let idx = zombieIndex(zombie)
+        if (idx < 0) continue
+        
+        let targetSprite = player
+        let bestDist = Math.abs(player.x - zombie.x) + Math.abs(player.y - zombie.y)
+        
+        for (let i = 0; i < scarecrowRefs.length; i++) {
+            let sc = scarecrowRefs[i]
+            let dist = Math.abs(sc.x - zombie.x) + Math.abs(sc.y - zombie.y)
+            if (dist < bestDist) {
+                bestDist = dist
+                targetSprite = sc
+            }
+        }
+        
+        let near = bestDist < ZOMBIE_AGGRO_RANGE
+        let desiredMode = near ? 1 : 0
+        
+        // Only call if mode changed OR if we need to force follow the new target
+        // MakeCode follow handles movement automatically, so we just call it to update speed/target
+        zombieModes[idx] = -1 // Force update so setZombieMode runs
+        setZombieMode(zombie, desiredMode)
     }
 })
 

@@ -29,6 +29,7 @@ const DUNGEON_WALL = 18
 const KEY_HOLE = 19
 const DUNGEON_FLOOR = 20
 const KEY = 21
+const CAMPFIRE = 22
 
 const MAT_DIRT = 0
 const MAT_STONE = 1
@@ -72,7 +73,7 @@ const INVINCIBILITY_MS = 500
 // GLOBAL STATE
 
 // --------------------------------------------------------------------------
-let gameState = TITLE
+let gameState: number = TITLE
 let titleChoice = 0
 let optionChoice = 0
 let difficultyChoice = 0
@@ -84,12 +85,14 @@ let optRiver = true
 let optSurvive = true
 let optToll = true
 let optDungeon = true
+let optFreeze = true
 
 const OBSTACLE_NONE = 0
 const OBSTACLE_RIVER = 1
 const OBSTACLE_SURVIVE = 2
 const OBSTACLE_TOLL = 3
 const OBSTACLE_DUNGEON = 4
+const OBSTACLE_FREEZE = 5
 
 let activeObstacle = OBSTACLE_NONE // The obstacle selected for the current level
 let survivalTimer = 0 // Ticks down in survival mode before diamond spawns
@@ -110,6 +113,15 @@ let harvestGoal = 0 // 0 = gate cleared / not active
 // Spike-check frame throttle
 let spikeCheckCounter = 0
 
+// Freeze Obstacle State
+let freezeMeter = 0
+const FREEZE_METER_MAX = 1000
+
+// Campfire Tracking
+let campfireCols: number[] = []
+let campfireRows: number[] = []
+let campfireHealths: number[] = []
+
 // Dungeon State
 let inDungeon = false
 let hasDungeonKey = false
@@ -125,7 +137,7 @@ let overworldBuffer: Buffer = null
 
 // Configuration & Game Loop Settings
 let selectedLevels = 1
-let selectedHealth = 5
+let selectedHealth: number = 5
 let isEditingOption = false
 let level = 1
 let firstTheme = 0
@@ -219,8 +231,12 @@ let skeletonTargets: Sprite[] = []
 let waterBridgeCols: number[] = []
 let waterBridgeRows: number[] = []
 
+// Arrays for scarecrow tracking
+let scarecrowRefs: Sprite[] = []
+
 namespace SpriteKind {
     export const Skeleton = SpriteKind.create()
+    export const Scarecrow = SpriteKind.create()
 }
 
 

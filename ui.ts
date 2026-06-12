@@ -323,10 +323,10 @@ function drawObstaclesMenu(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["RIVERS", "SURVIVAL", "TOLLS", "KEY CRAWL"];
-    let toggles = [optRiver, optSurvive, optToll, optDungeon];
+    let labels = ["RIVERS", "SURVIVAL", "TOLLS", "KEY CRAWL", "FREEZING NIGHT"];
+    let toggles = [optRiver, optSurvive, optToll, optDungeon, optFreeze];
     
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             if (obstacleChoicePos == i) {
@@ -344,7 +344,7 @@ function drawObstaclesMenu(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 12, 38)
-    drawScrollIndicator(target, 146, 38, 60, 4 * itemHeight, menuScrollY, 1)
+    drawScrollIndicator(target, 146, 38, 60, 5 * itemHeight, menuScrollY, 1)
     target.print("A:TOGGLE B:BACK", 22, 102, 1)
 }
 
@@ -360,6 +360,12 @@ function drawIntro(target: Image) {
 }
 
 function drawResourceHud(target: Image) {
+    // Hide default hearts if health is INFINITY
+    if (selectedHealth == INFINITY) {
+        target.fillRect(0, 0, 80, 12, 15) // Black background over hearts area
+        target.print("LIFE: \u221E", 2, 2, 1) // Print white "LIFE: infinity symbol"
+    }
+
     let countText = "" + matCount()
     let w = 18 + countText.length * 6
 
@@ -377,36 +383,7 @@ function drawResourceHud(target: Image) {
     }
 
     // Dynamic Obstacles HUD
-    if (activeObstacle == OBSTACLE_SURVIVE) {
-        target.fillRect(40, 0, 80, 12, 1)
-        target.drawRect(40, 0, 80, 12, 15)
-        let s = Math.ceil(survivalTimer / 1000)
-        let ts = s < 10 ? "0" + s : "" + s
-        let pfx = survivalPhase == 1 ? "PREP:" : "SURV:"
-        target.print(pfx + " " + ts, 44, 2, 15)
-    } else if (activeObstacle == OBSTACLE_TOLL) {
-        let tollCurrent = 0
-        if (tollMat == MAT_DIRT) tollCurrent = invDirt
-        else if (tollMat == MAT_STONE) tollCurrent = invStone
-        else if (tollMat == MAT_IRON) tollCurrent = invIron
-        else if (tollMat == MAT_WOOD) tollCurrent = invWood
-        else if (tollMat == MAT_GRASS) tollCurrent = invGrass
-        else if (tollMat == MAT_BONE) tollCurrent = invBones
-
-        let tollText = "TOLL:" + tollCurrent + "/" + tollAmount
-        let tollW = tollText.length * 6 + 14
-        target.fillRect(160 - tollW - w, 0, tollW, 12, 1)
-        target.drawRect(160 - tollW - w, 0, tollW, 12, 15)
-        drawMatIconMini(target, tollMat, 162 - tollW - w, 2)
-        target.print(tollText, 172 - tollW - w, 2, 15)
-    } else if (activeObstacle == OBSTACLE_DUNGEON) {
-        let text = hasDungeonKey ? "[KEY]" : "NO KEY"
-        let boxW = text.length * 6 + 4
-        target.fillRect(160 - boxW - w, 0, boxW, 12, 1)
-        target.drawRect(160 - boxW - w, 0, boxW, 12, 15)
-        let color = hasDungeonKey ? 5 : 2 // 5 = yellow, 2 = red
-        target.print(text, 162 - boxW - w, 2, color)
-    }
+    renderObstacleUI(target, w)
 }
 
 function drawTollDialog(target: Image) {
@@ -624,10 +601,20 @@ function drawBanner(target: Image) {
 
 // --------------------------------------------------------------------------
 function drawHarvestGate(target: Image) {
-    if (harvestGoal <= 0) return
-    let text = "MINED:" + harvestCount + "/" + harvestGoal
-    let w = text.length * 6 + 4
-    target.fillRect(160 - w, 13, w, 11, 1)
-    target.drawRect(160 - w, 13, w, 11, 15)
-    target.print(text, 162 - w, 15, 15)
+    if (harvestGoal == 0) return
+    
+    // Position near top right
+    let x = 110
+    let y = 4
+    
+    target.fillRect(x, y, 46, 12, 1)
+    target.drawRect(x, y, 46, 12, 5)
+    
+    // Draw the tiny diamond icon
+    target.drawTransparentImage(diamondTile, x - 4, y - 2) // We'll just overlap it
+    
+    // Print progress: 5/10
+    let pct = harvestCount + "/" + harvestGoal
+    target.print(pct, x + 16, y + 3, 15)
 }
+

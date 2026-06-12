@@ -34,5 +34,8 @@ After drafting or modifying code:
 •	Mandatory Pass: Your task is NOT complete until all tests successfully compile and run. If `pxt test` throws an error, you must fix the bug before completing your task or ending your turn.
 
 Step 5: Output Formatting
-•	Inline Documentation: All new functions must include clear inline comments explaining STS workarounds.
+•	Inline Documentation: All source code (both new functions and modifications) must include highly descriptive inline comments. Aim for a high human readability score by thoroughly explaining the "why" and "how" of the logic, not just STS workarounds.
 •	Integration Instructions: Specify how the user should integrate the code (e.g., compile via `pxt build && cp built/binary.js assets/js/binary.js`).
+
+Step 6: State Tracking (MANDATORY)
+After new code has been developed, verified via testing, and integrated, you MUST update `PROJECT_STATE.md` to reflect any new features, architectural decisions, outstanding known bugs, or updated testing requirements. This ensures the handoff context is always perfectly up to date for the next agent session.

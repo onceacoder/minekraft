@@ -14,7 +14,10 @@ function generateDungeon() {
         }
     }
 
-    // Grid of rooms: 6x8 grid, each room is 10x8 tiles (fits in 60x64 map limit)
+    // Dungeon Memory Layout (1D Flattened Arrays):
+    // To minimize memory overhead on hardware, we represent the 2D 6x8 grid 
+    // of rooms using 1D arrays. `roomMap` tracks if a room exists, and 
+    // `roomDepth` tracks its distance from the spawn to determine the key location.
     let gridW = 6
     let gridH = 8
     let roomMap: boolean[] = []
@@ -24,7 +27,10 @@ function generateDungeon() {
         roomDepth.push(0)
     }
 
-    // Branching DFS to generate maze-like dungeon
+    // Procedural Generation: Key Crawl Algorithm (DFS)
+    // We use a randomized Depth-First Search to carve a maze-like layout.
+    // The algorithm starts at a random room, picks a random unvisited neighbor, 
+    // and carves a corridor. It tracks the "deepest" room to hide the Dungeon Key.
     let startRoomX = randint(0, gridW - 1)
     let startRoomY = randint(0, gridH - 1)
     roomMap[startRoomX + startRoomY * gridW] = true

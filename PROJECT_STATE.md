@@ -33,6 +33,12 @@ MakeCode Arcade runs on severely constrained hardware (like the EF08247 microcon
 * **Dungeon Sub-Levels:** The "Key Crawl" feature successfully suspends the main overworld into memory, loads an isolated procedural dungeon with skeletons, requires finding a key to unlock the exit, and smoothly restores the overworld upon exiting.
 * **Procedural Dungeon Audio:** Dungeons now feature a unique, tension-building D-Phrygian dark ambient track.
 * **Water Bridge Fix:** Placing blocks over `WATER` is now tracked via `waterBridgeCols`/`waterBridgeRows` in `constants.ts`. Destroying those blocks restores `WATER` instead of defaulting to `GRASS`.
+* **Wood Resource Integration:** `MAT_WOOD` is now strictly required to build bridges over `WATER` obstacles, heavily increasing its value. The game validates this in `performTargetAction`.
+* **Demo AI Intelligence Upgrade:** The autonomous bot now dynamically targets resources (Iron, Bone, Wood) when depleted, tracks dead ends in dungeons via LRU arrays, and strictly seeks `WOOD` when trapped by a river.
+* **The Freezing Night (Campfires):** Added `OBSTACLE_FREEZE`. A temperature meter rapidly depletes, damaging the player if it reaches zero. Players must spend Wood & Hay to build a `CAMPFIRE` which restores temperature.
+* **Hay Fuel Mechanic:** `MAT_GRASS` (Hay) has been repurposed as campfire fuel. Players can "build" Hay over an existing Campfire to restore its health, creating a synergy between Wood (structure) and Hay (consumable).
+* **Scarecrows:** Added `SCARECROW` as a buildable structure (requires `BONE` + `HAY`). Scarecrows attract zombies within a radius, serving as an indestructible decoy to protect the player during combat.
+* **Healing Station:** Standing on `HAY` tiles for 2 seconds consumes the Hay and restores 1 HP. If the player plays on "Infinite Health", the HUD displays `INFINITY` and health counts are hidden.
 
 ## 5. Development Workflow
 If you modify code, compile it using:

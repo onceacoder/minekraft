@@ -20,14 +20,56 @@
  */
 
 
+let healingTimer = 0
+
 // --------------------------------------------------------------------------
 // Main per-frame update.
 
 // --------------------------------------------------------------------------
+// Main per-frame update loop.
+// Note: In MakeCode, game.onUpdate runs continuously. We use `gameState` 
+// to strictly gate the logic that should run per frame. This prevents 
+// player movement or collisions from processing during transitions.
+// --------------------------------------------------------------------------
 game.onUpdate(function () {
+    if (gameState == PLAYING) {
+        updateTargetCursor()
+        
+        // Healing Station Logic:
+        // When the player stands completely still on a HAY tile, we decrement 
+        // a timer. If it reaches 60 frames (approx 2 seconds), we consume the HAY 
+        // and restore 1 HP. This encourages players to build safe spots.
+        if (Math.abs(player.vx) < 1 && Math.abs(player.vy) < 1 && getTileId(playerCol(), playerRow()) == HAY) {
+            healingTimer += 1
+            if (healingTimer >= 60) { // 2 seconds
+                healingTimer = 0
+                setTile(playerCol(), playerRow(), GRASS)
+                
+                // Visual Effect
+                let healFx = sprites.create(blank16, SpriteKind.Food)
+                healFx.setPosition(playerCol() * TILE + 8, playerRow() * TILE + 8)
+                healFx.z = 20
+                healFx.lifespan = 300
+                healFx.startEffect(effects.hearts, 300)
+                music.playTone(600, 100)
+                
+                // Only add life if not infinite
+                if (selectedHealth != INFINITY) {
+                    info.changeLifeBy(1)
+                }
+            }
+        } else {
+            healingTimer = 0
+        }
+    }
+
     tickCoreAnimations()
     tickSkeletons()
 
+    // Dungeon Transition Logic:
+    // When walking into a dungeon, we smoothly lock the camera and slide it 
+    // to the new room. We bypass the PLAYING state to freeze player control 
+    // during this animation, pushing the player slightly into the room at the end.
     if (gameState == DUNGEON_TRANSITION) {
         let cx = scene.cameraProperty(CameraProperty.X)
         let cy = scene.cameraProperty(CameraProperty.Y)
@@ -58,65 +100,11 @@ game.onUpdate(function () {
         return
     }
 
-    if (gameState == TOLL_DIALOG && demoMode) {
-        if (game.runtime() % 1000 < 50) { // Slight delay to show dialog before acting
-            let current = 0
-            if (tollMat == MAT_DIRT) current = invDirt
-            else if (tollMat == MAT_STONE) current = invStone
-            else if (tollMat == MAT_IRON) current = invIron
-            else if (tollMat == MAT_WOOD) current = invWood
-            else if (tollMat == MAT_GRASS) current = invGrass
-            else if (tollMat == MAT_BONE) current = invBones
-
-            if (current >= tollAmount) {
-                if (tollMat == MAT_DIRT) invDirt -= tollAmount
-                else if (tollMat == MAT_STONE) invStone -= tollAmount
-                else if (tollMat == MAT_IRON) invIron -= tollAmount
-                else if (tollMat == MAT_WOOD) invWood -= tollAmount
-                else if (tollMat == MAT_GRASS) invGrass -= tollAmount
-                else if (tollMat == MAT_BONE) invBones -= tollAmount
-
-                gameState = PLAYING
-                finishLevel()
-            } else {
-                music.playTone(131, 100)
-                // Bounce away and go back to harvesting
-                player.x -= 32 * getSign(player.x - goalCol * TILE - 8)
-                player.y -= 32 * getSign(player.y - goalRow * TILE - 8)
-                gameState = PLAYING
-                demoSeekDiamond = false
-                demoStateUntil = 0
-            }
-        }
-        return
-    }
+    updateObstacles()
 
     if (gameState != PLAYING || player == null) return
 
     updateDiamondMarker()
-
-    // Survival Mode mechanic: Check and decrement timer until Diamond spawn
-    if (activeObstacle == OBSTACLE_SURVIVE && survivalTimer > 0) {
-        survivalTimer -= 33 // Approximate delta time for 30 FPS
-        if (survivalTimer <= 0) {
-            if (survivalPhase == 1) {
-                // Prep phase is over, start survive phase
-                survivalPhase = 2
-                survivalTimer = randint(120000, 300000) // 2-5 minutes
-                showBanner("ZOMBIE ATTACK!")
-                music.playTone(523, 200)
-                music.playTone(493, 300)
-            } else if (survivalPhase == 2) {
-                // Survive phase is over, spawn diamond
-                survivalPhase = 0
-                survivalTimer = 0
-                setTile(goalCol, goalRow, DIAMOND)
-                if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
-                showBanner("DIAMOND APPEARED!")
-                music.playTone(440, 500)
-            }
-        }
-    }
 
     // Harvest gate: reveal diamond when mining target reached
     if (harvestGoal > 0 && harvestCount >= harvestGoal && activeObstacle != OBSTACLE_SURVIVE) {
@@ -163,7 +151,7 @@ game.onUpdate(function () {
                 setTile(zCol, zRow, GRASS) // Trap breaks after one use
                 forgetZombie(zombie)
                 zombie.destroy(effects.fire, 200)
-                breakEffect(zCol, zRow)
+                breakEffect(zCol, zRow, SPIKES)
             }
         }
 
@@ -175,7 +163,7 @@ game.onUpdate(function () {
                 setTile(sCol, sRow, GRASS) // Trap breaks after one use
                 forgetSkeleton(skel)
                 skel.destroy(effects.fire, 200)
-                breakEffect(sCol, sRow)
+                breakEffect(sCol, sRow, SPIKES)
                 updateSkeletonTargeting()
             }
         }
@@ -262,8 +250,10 @@ scene.createRenderable(100, function (target: Image, camera: scene.Camera) {
     else if (gameState == INTRO) drawIntro(target)
     else if (gameState == PLAYING) {
         drawGoalPointer(target)
+        drawNightOverlay(target)
         drawResourceHud(target)
         drawHarvestGate(target)
+        drawFreezeMeter(target)
         drawInventory(target)
         drawDemoPausedBanner(target)
         drawBanner(target)

@@ -6,6 +6,9 @@ function isDemoActive(): boolean {
     return demoMode && gameState == PLAYING
 }
 
+let demoExploredCols: number[] = []
+let demoExploredRows: number[] = []
+
 function toggleDemoPause() {
     if (!isDemoActive()) return
 
@@ -21,6 +24,8 @@ function toggleDemoPause() {
         demoRecoveryUntil = game.runtime() + 200
         demoMoveUntil = 0
         controller.moveSprite(player, 0, 0)
+        demoExploredCols = []
+        demoExploredRows = []
     }
 }
 
@@ -49,7 +54,10 @@ function currentDemoRow(): number {
 
 function isWalkableForDemo(col: number, row: number): boolean {
     let id = getTileId(col, row)
-    return id == GRASS || id == DIAMOND
+    if (inDungeon) {
+        return id == DUNGEON_FLOOR || id == KEY || id == KEY_HOLE
+    }
+    return id == GRASS || id == DIAMOND || id == BRICKS || id == STONE_BLOCK || id == TIMBER || id == HAY
 }
 
 function demoTileForPixel(px: number): number {
@@ -123,6 +131,18 @@ function demoIsTileTollMaterial(tid: number): boolean {
     return false
 }
 
+/**
+ * Determines the overarching goal for the Demo AI.
+ * -----------------------------------------------
+ * The AI operates using a dynamic state machine that evaluates the current 
+ * environment and obstacle constraints to pick a "Trajectory" (a macro-goal).
+ * 
+ * Priorities:
+ * 1. If in a dungeon, seek the Key or Keyhole.
+ * 2. If blocked by a Toll, scan the map to harvest the required material.
+ * 3. If faced with a River or Freeze night, seek out Wood or Hay.
+ * 4. Otherwise, randomly explore or seek the Diamond.
+ */
 function chooseDemoTrajectory() {
     if (player == null) return
 
@@ -130,19 +150,44 @@ function chooseDemoTrajectory() {
     demoTrajectoryStartRow = currentDemoRow()
     demoTrajectoryLen = randint(10, 20)
 
-    if (demoNearDiamond() && demoCanAffordToll()) {
+    let targetGoalCol = goalCol
+    let targetGoalRow = goalRow
+    let isSeekingMainGoal = demoNearDiamond() && demoCanAffordToll()
+
+    if (inDungeon) {
+        isSeekingMainGoal = true
+        let foundCol = -1
+        let foundRow = -1
+        let targetId = hasDungeonKey ? KEY_HOLE : KEY
+        for (let c = 0; c < MAP_W; c++) {
+            for (let r = 0; r < MAP_H; r++) {
+                if (getTileId(c, r) == targetId) {
+                    foundCol = c
+                    foundRow = r
+                    break
+                }
+            }
+            if (foundCol != -1) break
+        }
+        if (foundCol != -1) {
+            targetGoalCol = foundCol
+            targetGoalRow = foundRow
+        }
+    }
+
+    if (isSeekingMainGoal) {
         demoSeekDiamond = true
-        demoTrajectoryEndCol = goalCol
-        demoTrajectoryEndRow = goalRow
-        demoWaypointCol = goalCol
-        demoWaypointRow = goalRow
+        demoTrajectoryEndCol = targetGoalCol
+        demoTrajectoryEndRow = targetGoalRow
+        demoWaypointCol = targetGoalCol
+        demoWaypointRow = targetGoalRow
         demoWaypointUntil = game.runtime() + 4500
         demoTrajectoryUntil = demoWaypointUntil
         demoMoveUntil = 0
         return
     }
 
-    if (activeObstacle == OBSTACLE_TOLL && !demoCanAffordToll()) {
+    if (!inDungeon && activeObstacle == OBSTACLE_TOLL && !demoCanAffordToll()) {
         let bestDist = 9999
         let bestCol = -1
         let bestRow = -1
@@ -176,9 +221,48 @@ function chooseDemoTrajectory() {
 
     if (dx == 0 && dy == 0) dx = 1
 
+    // Dynamic Resource Harvesting:
+    // If the AI detects it lacks materials needed for the current obstacle 
+    // (e.g., Wood for bridges, Wood/Hay for campfires, Iron/Bone for combat),
+    // it rolls a 30% chance to suspend standard exploration and seek the 
+    // nearest required resource tile instead.
+    let needsBridgeWood = (!inDungeon && activeObstacle == OBSTACLE_RIVER && invWood == 0)
+    let needsCampfireWood = (!inDungeon && activeObstacle == OBSTACLE_FREEZE && invWood == 0)
+    let needsCampfireGrass = (!inDungeon && activeObstacle == OBSTACLE_FREEZE && invWood > 0 && invGrass == 0)
+    
+    if ((needsBridgeWood || needsCampfireWood || needsCampfireGrass || (!inDungeon && (invIron == 0 || invBones == 0))) && randint(0, 100) < 30) {
+        let targetId = needsCampfireGrass ? TALL_GRASS : (needsBridgeWood || needsCampfireWood) ? WOOD : (invBones == 0 ? BONE : IRON_ORE)
+        let bestDist = 9999
+        let bestCol = -1
+        let bestRow = -1
+        for (let r = 2; r < MAP_H - 2; r++) {
+            for (let c = 2; c < MAP_W - 2; c++) {
+                if (getTileId(c, r) == targetId) {
+                    let d = Math.abs(c - demoTrajectoryStartCol) + Math.abs(r - demoTrajectoryStartRow)
+                    if (d < bestDist) {
+                        bestDist = d
+                        bestCol = c
+                        bestRow = r
+                    }
+                }
+            }
+        }
+        if (bestCol != -1) {
+            demoTrajectoryEndCol = bestCol
+            demoTrajectoryEndRow = bestRow
+            demoWaypointCol = bestCol
+            demoWaypointRow = bestRow
+            demoWaypointUntil = game.runtime() + randint(4500, 8500)
+            demoTrajectoryUntil = demoWaypointUntil
+            demoMoveUntil = 0
+            demoReverseCount = 0
+            return
+        }
+    }
+
     if (demoSeekDiamond || randint(0, 100) < 30) {
-        let gx = goalCol - demoTrajectoryStartCol
-        let gy = goalRow - demoTrajectoryStartRow
+        let gx = targetGoalCol - demoTrajectoryStartCol
+        let gy = targetGoalRow - demoTrajectoryStartRow
 
         if (Math.abs(gx) > 3) {
             if (gx > 0) dx = 1
@@ -191,8 +275,35 @@ function chooseDemoTrajectory() {
         }
     }
 
-    let endCol = demoClampCol(demoTrajectoryStartCol + dx * demoTrajectoryLen)
-    let endRow = demoClampRow(demoTrajectoryStartRow + dy * demoTrajectoryLen)
+    // Evaluate multiple random trajectories and pick the one furthest from recently explored areas to avoid dead ends
+    let bestEndCol = demoClampCol(demoTrajectoryStartCol + dx * demoTrajectoryLen)
+    let bestEndRow = demoClampRow(demoTrajectoryStartRow + dy * demoTrajectoryLen)
+    
+    if (inDungeon) {
+        let bestExploredDist = -1
+        for(let t = 0; t < 5; t++) {
+            let tdx = randint(-1, 1)
+            let tdy = randint(-1, 1)
+            if (tdx == 0 && tdy == 0) tdx = 1
+            let testCol = demoClampCol(demoTrajectoryStartCol + tdx * demoTrajectoryLen)
+            let testRow = demoClampRow(demoTrajectoryStartRow + tdy * demoTrajectoryLen)
+            
+            let penalty = 0
+            for(let i = 0; i < demoExploredCols.length; i++) {
+                let dist = Math.abs(demoExploredCols[i] - testCol) + Math.abs(demoExploredRows[i] - testRow)
+                if (dist < 10) penalty += (10 - dist)
+            }
+            
+            if (bestExploredDist == -1 || penalty < bestExploredDist) {
+                bestExploredDist = penalty
+                bestEndCol = testCol
+                bestEndRow = testRow
+            }
+        }
+    }
+
+    let endCol = bestEndCol
+    let endRow = bestEndRow
 
     let found = false
     for (let radius = 0; radius <= 5; radius++) {
@@ -211,8 +322,8 @@ function chooseDemoTrajectory() {
     }
 
     if (!found) {
-        demoTrajectoryEndCol = goalCol
-        demoTrajectoryEndRow = goalRow
+        demoTrajectoryEndCol = targetGoalCol
+        demoTrajectoryEndRow = targetGoalRow
     }
 
     demoWaypointCol = demoTrajectoryEndCol
@@ -259,7 +370,29 @@ function setDemoTargetTowards(col: number, row: number) {
 }
 
 function setDemoTargetTowardsDiamond() {
-    setDemoTargetTowards(goalCol, goalRow)
+    let targetGoalCol = goalCol
+    let targetGoalRow = goalRow
+
+    if (inDungeon) {
+        let foundCol = -1
+        let foundRow = -1
+        let targetId = hasDungeonKey ? KEY_HOLE : KEY
+        for (let c = 0; c < MAP_W; c++) {
+            for (let r = 0; r < MAP_H; r++) {
+                if (getTileId(c, r) == targetId) {
+                    foundCol = c
+                    foundRow = r
+                    break
+                }
+            }
+            if (foundCol != -1) break
+        }
+        if (foundCol != -1) {
+            targetGoalCol = foundCol
+            targetGoalRow = foundRow
+        }
+    }
+    setDemoTargetTowards(targetGoalCol, targetGoalRow)
 }
 
 function demoMaybePause() {
@@ -340,6 +473,11 @@ function demoHarvestBlocker(vx: number, vy: number): boolean {
     return false
 }
 
+function demoSelectBridgeMaterial(): boolean {
+    if (invWood > 0) { selectedMat = MAT_WOOD; return true; }
+    return false
+}
+
 function demoSelectRandomMaterialWithStock(): boolean {
     for (let attempt = 0; attempt < 8; attempt++) {
         selectedMat = randint(MAT_DIRT, MAT_GRASS)
@@ -352,7 +490,45 @@ function demoSelectRandomMaterialWithStock(): boolean {
     return false
 }
 
+function demoTryBuildCampfire(): boolean {
+    if (activeObstacle != OBSTACLE_FREEZE) return false
+    if (game.runtime() < demoBuildCooldown) return false
+    if (freezeMeter > 1000) return false // Not freezing yet
+    
+    if (invWood > 0 && invGrass > 0) {
+        // Find a safe spot to build Timber
+        for (let attempt = 0; attempt < 8; attempt++) {
+            let dx = randint(-1, 1)
+            let dy = randint(-1, 1)
+            if (dx != 0 || dy != 0) {
+                let col = playerCol() + dx
+                let row = playerRow() + dy
+                if (getTileId(col, row) == GRASS) {
+                    facingDx = dx
+                    facingDy = dy
+                    // 1. Build Timber
+                    selectedMat = MAT_WOOD
+                    performTargetAction()
+                    
+                    // 2. Ignite Campfire with Grass
+                    selectedMat = MAT_GRASS
+                    performTargetAction()
+                    
+                    demoBuildCooldown = game.runtime() + 4000
+                    
+                    // Stop moving to warm up
+                    demoStop()
+                    demoMoveUntil = game.runtime() + 2000
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+
 function demoTryBuildRandomly(): boolean {
+    if (demoTryBuildCampfire()) return true
     if (player == null) return false
     if (game.runtime() < demoBuildCooldown) return false
     if (nearestZombieDistance() > 42 && randint(0, 100) > 20) return false
@@ -459,6 +635,16 @@ function demoCheckProgress() {
         demoNoProgressCount = 0
         demoLastCol = col
         demoLastRow = row
+        
+        // Track exploration in dungeons
+        if (inDungeon) {
+            demoExploredCols.push(col)
+            demoExploredRows.push(row)
+            if (demoExploredCols.length > 20) {
+                demoExploredCols.shift()
+                demoExploredRows.shift()
+            }
+        }
     }
 
     demoLastPosCheck = game.runtime() + 650
@@ -527,7 +713,23 @@ function demoApplySafeVelocity(vx: number, vy: number) {
         player.vx = 0
         player.vy = finalVy
     } else {
-        if (!demoHarvestBlocker(finalVx, finalVy)) {
+        let didAction = false
+        // Try bridge building if blocked by water
+        if (activeObstacle == OBSTACLE_RIVER && game.runtime() > demoActionCooldown) {
+            let testCol = playerCol() + (finalVx > 0 ? 1 : (finalVx < 0 ? -1 : 0))
+            let testRow = playerRow() + (finalVy > 0 ? 1 : (finalVy < 0 ? -1 : 0))
+            if (getTileId(testCol, testRow) == WATER && demoSelectBridgeMaterial()) {
+                facingDx = testCol - playerCol()
+                facingDy = testRow - playerRow()
+                performTargetAction()
+                demoActionCooldown = game.runtime() + 600
+                demoMoveUntil = 0
+                demoStuckCount = 0
+                didAction = true
+            }
+        }
+
+        if (!didAction && !demoHarvestBlocker(finalVx, finalVy)) {
             demoStartEscape()
             return
         }
@@ -569,6 +771,39 @@ function demoComputeVelocityTowards(col: number, row: number) {
     }
 
     if (nearest < 48) {
+        // Combat!
+        if (inDungeon) {
+            // Zelda combat: face the zombie and attack
+            let fdx = nearestDx > 0 ? -1 : (nearestDx < 0 ? 1 : 0)
+            let fdy = nearestDy > 0 ? -1 : (nearestDy < 0 ? 1 : 0)
+            if (fdx != 0 || fdy != 0) {
+                facingDx = fdx
+                facingDy = fdy
+                if (game.runtime() > demoActionCooldown) {
+                    performTargetAction()
+                    demoActionCooldown = game.runtime() + 300
+                }
+            }
+        } else {
+            // Overworld combat: deploy spikes or skeletons if possible, then run
+            if (game.runtime() > demoActionCooldown) {
+                if (invBones > 0) {
+                    selectedMat = MAT_BONE
+                    facingDx = nearestDx > 0 ? 1 : (nearestDx < 0 ? -1 : 0)
+                    facingDy = nearestDy > 0 ? 1 : (nearestDy < 0 ? -1 : 0)
+                    performTargetAction()
+                    demoActionCooldown = game.runtime() + 1000
+                } else if (invIron > 0) {
+                    selectedMat = MAT_IRON
+                    facingDx = nearestDx > 0 ? 1 : (nearestDx < 0 ? -1 : 0)
+                    facingDy = nearestDy > 0 ? 1 : (nearestDy < 0 ? -1 : 0)
+                    performTargetAction()
+                    demoActionCooldown = game.runtime() + 1000
+                }
+            }
+        }
+        
+        // Evade
         if (nearestDx > 0) vx = DEMO_SPEED
         else if (nearestDx < 0) vx = 0 - DEMO_SPEED
 
@@ -609,8 +844,30 @@ function demoMovePlayer() {
     if (player == null) return
 
     if (demoSeekDiamond && game.runtime() > demoTrajectoryUntil) {
-        demoTrajectoryEndCol = goalCol
-        demoTrajectoryEndRow = goalRow
+        let targetGoalCol = goalCol
+        let targetGoalRow = goalRow
+
+        if (inDungeon) {
+            let foundCol = -1
+            let foundRow = -1
+            let targetId = hasDungeonKey ? KEY_HOLE : KEY
+            for (let c = 0; c < MAP_W; c++) {
+                for (let r = 0; r < MAP_H; r++) {
+                    if (getTileId(c, r) == targetId) {
+                        foundCol = c
+                        foundRow = r
+                        break
+                    }
+                }
+                if (foundCol != -1) break
+            }
+            if (foundCol != -1) {
+                targetGoalCol = foundCol
+                targetGoalRow = foundRow
+            }
+        }
+        demoTrajectoryEndCol = targetGoalCol
+        demoTrajectoryEndRow = targetGoalRow
     }
 
     let reachedTrajectoryEnd = Math.abs(currentDemoCol() - demoTrajectoryEndCol) <= 1 && Math.abs(currentDemoRow() - demoTrajectoryEndRow) <= 1

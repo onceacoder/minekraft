@@ -259,8 +259,8 @@ function selectedTile(): number {
     else return BONE
 }
 
-function breakEffect(col: number, row: number) {
-    let fx = sprites.create(blank16, SpriteKind.Food)
+function breakEffect(col: number, row: number, tileId: number) {
+    let fx = sprites.create(tileImages[tileId], SpriteKind.Food)
     fx.setPosition(col * TILE + 8, row * TILE + 8)
     fx.lifespan = 250
     fx.startEffect(effects.disintegrate, 250)
@@ -298,7 +298,11 @@ function buildBlock(col: number, row: number, dirX: number, dirY: number) {
     music.playTone(175, 50)
 }
 
-/** Returns true if (col, row) was a water tile before a block was placed on it. */
+/** 
+ * Returns true if (col, row) was previously a water tile before a block was placed on it.
+ * This is used to guarantee that breaking a bridge over a river restores the WATER tile 
+ * instead of generating generic GRASS, which would allow players to easily bypass obstacles.
+ */
 function wasWaterBridge(col: number, row: number): boolean {
     for (let i = 0; i < waterBridgeCols.length; i++) {
         if (waterBridgeCols[i] == col && waterBridgeRows[i] == row) return true
@@ -317,8 +321,16 @@ function forgetWaterBridge(col: number, row: number) {
     }
 }
 
-/** * Instant action executor. Tries to harvest the exact tile faced first.
- * If blocked and building, automatically finds the nearest available surrounding grass.
+/** 
+ * Instant Action Executor (Triggered by 'B' button)
+ * ------------------------------------------------
+ * This single function orchestrates Harvesting, Zelda-style Combat, and Building.
+ * 1. Checks if the tile in front of the player is an enemy (if in dungeon).
+ * 2. Checks if the tile is a Keyhole and unlocks it if a Key is held.
+ * 3. Checks if the tile is harvestable and extracts the resource.
+ * 4. If none of the above, and a resource is selected, it attempts to Build.
+ *    If the tile directly in front is blocked, it performs an auto-search 
+ *    around the player's 8 adjacent tiles to find the nearest valid build spot.
  */
 function performTargetAction() {
     if (player == null) return
@@ -375,11 +387,7 @@ function performTargetAction() {
         else if (frontId == TALL_GRASS) invGrass += 1
         else if (frontId == BONE) invBones += 1
         else if (frontId == BRICKS || frontId == STONE_BLOCK || frontId == TIMBER || frontId == HAY || frontId == SPIKES) {
-            let effectSprite = sprites.create(blank16, SpriteKind.Food)
-            effectSprite.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
-            effectSprite.z = 20
-            effectSprite.lifespan = 200
-            effectSprite.startEffect(effects.disintegrate, 200)
+            breakEffect(frontCol, frontRow, frontId)
         }
 
         // Restore water if this block was built over a river tile
@@ -397,8 +405,85 @@ function performTargetAction() {
 
     // If we have resources selected, attempt to build
     if (matCount() > 0 && selectedMat != MAT_SAVE) {
+        
+        // Scarecrow Building: Requires MAT_BONE as the selected item and the target 
+        // tile to be HAY. Acts as an indestructible decoy for zombies.
+        if (selectedMat == MAT_BONE && frontId == HAY) {
+            if (inDungeon) {
+                music.playTone(131, 40)
+                showBanner("NOT IN DUNGEON")
+                return
+            }
+            if (scarecrowRefs.length >= 2) {
+                music.playTone(131, 40)
+                showBanner("MAX SCARECROWS")
+                return
+            }
+            // Consume the HAY tile and spawn the scarecrow entity
+            setTile(frontCol, frontRow, GRASS)
+            spawnScarecrow(frontCol, frontRow)
+            invBones -= 1
+            playPlayerAttack(facingDx, facingDy)
+            return
+        }
+
+        // Campfire Ignition: Requires MAT_GRASS (Hay) on a TIMBER block.
+        // We push the coordinates to parallel arrays (campfireCols, campfireRows, campfireHealths)
+        // to track degradation over time without using complex objects.
+        if (selectedMat == MAT_GRASS && frontId == TIMBER) {
+            setTile(frontCol, frontRow, CAMPFIRE)
+            campfireCols.push(frontCol)
+            campfireRows.push(frontRow)
+            campfireHealths.push(3000) // Initial health (approx 100 seconds)
+            invGrass -= 1
+            playPlayerAttack(facingDx, facingDy)
+            music.playTone(400, 50)
+            
+            let effectSprite = sprites.create(blank16, SpriteKind.Food)
+            effectSprite.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
+            effectSprite.z = 20
+            effectSprite.lifespan = 200
+            effectSprite.startEffect(effects.fire, 200)
+            return
+        }
+
+        // Campfire Fueling: "Build" Wood or Hay directly over an existing campfire 
+        // to restore its health array value. Wood provides 3x more fuel than Hay.
+        if (frontId == CAMPFIRE) {
+            if (selectedMat == MAT_WOOD || selectedMat == MAT_GRASS) {
+                for (let i = 0; i < campfireCols.length; i++) {
+                    if (campfireCols[i] == frontCol && campfireRows[i] == frontRow) {
+                        let fuelAmt = (selectedMat == MAT_WOOD) ? 4500 : 1500
+                        campfireHealths[i] += fuelAmt
+                        
+                        if (selectedMat == MAT_WOOD) invWood -= 1
+                        else invGrass -= 1
+                        
+                        playPlayerAttack(facingDx, facingDy)
+                        music.playTone(400, 50)
+                        
+                        let effectSprite = sprites.create(blank16, SpriteKind.Food)
+                        effectSprite.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
+                        effectSprite.z = 20
+                        effectSprite.lifespan = 200
+                        effectSprite.startEffect(effects.fire, 200)
+                        return
+                    }
+                }
+            } else {
+                music.playTone(131, 40)
+                showBanner("FUEL WITH WOOD/GRASS")
+                return
+            }
+        }
+
         // Try exactly the space right in front of the player
         if (frontId == GRASS || frontId == WATER || frontId == DUNGEON_FLOOR) {
+            if (frontId == WATER && selectedMat != MAT_WOOD) {
+                music.playTone(131, 40)
+                showBanner("NEEDS WOOD")
+                return
+            }
             buildBlock(frontCol, frontRow, facingDx, facingDy)
             return
         }
@@ -412,6 +497,9 @@ function performTargetAction() {
 
                 let cid = getTileId(c, r)
                 if (cid == GRASS || cid == WATER || cid == DUNGEON_FLOOR) {
+                    if (cid == WATER && selectedMat != MAT_WOOD) {
+                        continue // Skip water tiles if not using wood during auto-search
+                    }
                     buildBlock(c, r, dx, dy)
                     return
                 }
@@ -648,6 +736,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         else if (obstacleChoicePos == 1) optSurvive = !optSurvive
         else if (obstacleChoicePos == 2) optToll = !optToll
         else if (obstacleChoicePos == 3) optDungeon = !optDungeon
+        else if (obstacleChoicePos == 4) optFreeze = !optFreeze
         return
     }
 

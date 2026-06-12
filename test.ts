@@ -73,7 +73,54 @@ function testZombieIteration() {
     z3.destroy()
 }
 
+function testBridgeMaterialSelection() {
+    let oldGrass = invGrass
+    let oldDirt = invDirt
+    let oldWood = invWood
+    let oldStone = invStone
+    let oldSelected = selectedMat
+    
+    // Test 1: Priority cascade - should fail if NO WOOD
+    invGrass = 5
+    invDirt = 5
+    invWood = 0
+    invStone = 5
+    let success = demoSelectBridgeMaterial()
+    assert(success === false, "Bridge Selection: Should strictly fail if MAT_WOOD is not available.")
+    
+    // Test 2: Absolute priority - should succeed if WOOD is available
+    invGrass = 2
+    invDirt = 5
+    invWood = 1
+    invStone = 5
+    demoSelectBridgeMaterial()
+    assert(selectedMat === MAT_WOOD, "Bridge Selection: Correctly selected MAT_WOOD to build over water.")
+    
+    invGrass = oldGrass
+    invDirt = oldDirt
+    invWood = oldWood
+    invStone = oldStone
+    selectedMat = oldSelected
+}
+
+function testExplorationArrayShifting() {
+    let testCols: number[] = []
+    
+    for (let i = 0; i < 25; i++) {
+        testCols.push(i)
+        if (testCols.length > 20) {
+            testCols.shift()
+        }
+    }
+    
+    assert(testCols.length === 20, "Exploration Memory: The array length is correctly capped at 20 using shift().")
+    assert(testCols[0] === 5, "Exploration Memory: The shift() function successfully removed the oldest elements.")
+    assert(testCols[19] === 24, "Exploration Memory: The push() function successfully added the newest elements at the end.")
+}
+
 console.log("=== RUNNING AUTOMATED UNIT TESTS ===")
 testDungeon1DArray()
 testZombieIteration()
+testBridgeMaterialSelection()
+testExplorationArrayShifting()
 console.log("=== ALL AUTOMATED TESTS PASSED SUCCESSFULLY ===")

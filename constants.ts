@@ -3,28 +3,40 @@
 // Map sizing, Tile indices, and Tunable Game Variables
 
 // --------------------------------------------------------------------------
-const MAP_W = 48
-const MAP_H = 48
+const MAP_W = 60
+const MAP_H = 64
 const TILE = 16
 
 const GRASS = 0
 const DIRT = 1
 const STONE = 2
 const BEDROCK = 3
-const DIRT_WALL = 4
+const DIRT_WALL = 4 // (Legacy, can be mapped/kept to avoid breaking saves, but we'll introduce BRICKS)
 const SPIKES = 5
 const DIAMOND = 6
 const WOOD = 7
-const LEAVES = 8
+const LEAVES = 8 // (Legacy)
 const BONE = 9
 const WATER = 10
+const IRON_ORE = 11
+const BRICKS = 12
+const STONE_BLOCK = 13
+const TIMBER = 14
+const TALL_GRASS = 15
+const HAY = 16
+const CAVE_ENTRANCE = 17
+const DUNGEON_WALL = 18
+const KEY_HOLE = 19
+const DUNGEON_FLOOR = 20
+const KEY = 21
 
 const MAT_DIRT = 0
 const MAT_STONE = 1
 const MAT_WOOD = 2
-const MAT_LEAVES = 3
+const MAT_GRASS = 3
 const MAT_BONE = 4
-const MAT_SAVE = 5
+const MAT_IRON = 5
+const MAT_SAVE = 6
 
 const TITLE = 0
 const OPTIONS = 1
@@ -37,6 +49,7 @@ const LOADING = 7
 const DIFFICULTY = 8
 const OBSTACLES = 9
 const TOLL_DIALOG = 10
+const DUNGEON_TRANSITION = 11
 
 const PLAYER_SPEED = 80
 const DEMO_SPEED = 60
@@ -70,11 +83,13 @@ let diffZombieCountOffset = 0
 let optRiver = true
 let optSurvive = true
 let optToll = true
+let optDungeon = true
 
 const OBSTACLE_NONE = 0
 const OBSTACLE_RIVER = 1
 const OBSTACLE_SURVIVE = 2
 const OBSTACLE_TOLL = 3
+const OBSTACLE_DUNGEON = 4
 
 let activeObstacle = OBSTACLE_NONE // The obstacle selected for the current level
 let survivalTimer = 0 // Ticks down in survival mode before diamond spawns
@@ -82,10 +97,36 @@ let survivalPhase = 0 // 0=none, 1=prep, 2=survive
 let tollMat = 0 // Material required for toll
 let tollAmount = 0 // Amount of material required
 let obstacleChoicePos = 0 // UI selection index for obstacles menu
+let lastObstacle = OBSTACLE_NONE // Tracks previous level's obstacle for no-repeat guard
+
+// Banner system — dissolving phase announcements
+let bannerText = ""
+let bannerUntil = 0 // game.runtime() timestamp when banner expires
+
+// Harvest gate — diamond hidden until player mines enough blocks
+let harvestCount = 0
+let harvestGoal = 0 // 0 = gate cleared / not active
+
+// Spike-check frame throttle
+let spikeCheckCounter = 0
+
+// Dungeon State
+let inDungeon = false
+let hasDungeonKey = false
+let currentRoomX = 0
+let currentRoomY = 0
+let targetCameraX = 0
+let targetCameraY = 0
+let dungeonSpawnCol = 0
+let dungeonSpawnRow = 0
+let dungeonReturnCol = 0
+let dungeonReturnRow = 0
+let overworldBuffer: Buffer = null
 
 // Configuration & Game Loop Settings
 let selectedLevels = 1
 let selectedHealth = 5
+let isEditingOption = false
 let level = 1
 let firstTheme = 0
 let theme = 0
@@ -132,9 +173,11 @@ let demoSeekDiamond = false
 let invDirt = 0
 let invStone = 0
 let invWood = 0
-let invLeaves = 0
+let invGrass = 0
 let invBones = 0
+let invIron = 0
 let selectedMat = MAT_DIRT // Currently selected build material
+let inventoryCursor = MAT_DIRT // Cursor position in the inventory menu
 let inventoryOpen = false
 let facingDx = 1 // Player facing direction X
 let facingDy = 0 // Player facing direction Y
@@ -170,6 +213,11 @@ let zombieModes: number[] = []
 // Arrays for skeleton tracking
 let skeletonRefs: Sprite[] = []
 let skeletonTargets: Sprite[] = []
+
+// Water bridge tracking: records positions where a block was built over water,
+// so destroying the block correctly restores water rather than leaving grass.
+let waterBridgeCols: number[] = []
+let waterBridgeRows: number[] = []
 
 namespace SpriteKind {
     export const Skeleton = SpriteKind.create()

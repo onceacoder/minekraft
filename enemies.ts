@@ -233,7 +233,10 @@ function zombieCount(): number {
 function spawnZombie() {
     if (gameState != PLAYING || player == null || inventoryOpen) return
     if (activeObstacle == OBSTACLE_SURVIVE && survivalPhase == 1) return // No zombies during prep
-    if (zombieCount() >= maxZombies) return
+    let limit = maxZombies
+    if (inDungeon) limit += 5 // Dungeons are more heavily infested
+
+    if (zombieCount() >= limit) return
 
     let spawnCol = 2
     let spawnRow = 2
@@ -243,12 +246,14 @@ function spawnZombie() {
         spawnCol = randint(2, MAP_W - 3)
         spawnRow = randint(2, MAP_H - 3)
 
-        if (getTileId(spawnCol, spawnRow) == GRASS && Math.abs(spawnCol - playerCol()) + Math.abs(spawnRow - playerRow()) > ZOMBIE_SPAWN_MIN_DIST) {
+        let tile = getTileId(spawnCol, spawnRow)
+        if ((tile == GRASS || tile == DUNGEON_FLOOR) && Math.abs(spawnCol - playerCol()) + Math.abs(spawnRow - playerRow()) > ZOMBIE_SPAWN_MIN_DIST) {
             break
         }
     }
 
-    if (getTileId(spawnCol, spawnRow) != GRASS) return
+    let finalTile = getTileId(spawnCol, spawnRow)
+    if (finalTile != GRASS && finalTile != DUNGEON_FLOOR) return
 
     let zombie = sprites.create(zIdle, SpriteKind.Enemy)
     zombie.z = 5

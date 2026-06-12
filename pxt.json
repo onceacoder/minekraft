@@ -9,6 +9,7 @@
         "assets/images.ts",
         "constants.ts",
         "world.ts",
+        "dungeon.ts",
         "audio.ts",
         "enemies.ts",
         "demo.ts",

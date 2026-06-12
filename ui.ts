@@ -14,7 +14,9 @@ function clampScreen(value: number, minValue: number, maxValue: number): number 
 }
 
 function drawGoalPointer(target: Image) {
-    if (gameState != PLAYING || player == null) return
+    if (gameState != PLAYING || player == null || inDungeon) return
+
+    if (getTileId(goalCol, goalRow) != DIAMOND) return
 
     let gx = goalCol * TILE + 8
     let gy = goalRow * TILE + 8
@@ -53,32 +55,35 @@ function drawGoalPointer(target: Image) {
 
 // 16x16 icon drawer (for standard sized menus)
 function drawMatIcon(target: Image, mat: number, x: number, y: number) {
-    if (mat == MAT_DIRT) target.drawTransparentImage(dirtWallTile, x, y)
-    else if (mat == MAT_STONE) target.drawTransparentImage(spikesTile, x, y)
-    else if (mat == MAT_WOOD) target.drawTransparentImage(woodTile, x, y)
-    else if (mat == MAT_LEAVES) target.drawTransparentImage(leavesTile, x, y)
+    if (mat == MAT_DIRT) target.drawTransparentImage(bricksTile, x, y)
+    else if (mat == MAT_STONE) target.drawTransparentImage(stoneBlockTile, x, y)
+    else if (mat == MAT_IRON) target.drawTransparentImage(spikesTile, x, y)
+    else if (mat == MAT_WOOD) target.drawTransparentImage(timberTile, x, y)
+    else if (mat == MAT_GRASS) target.drawTransparentImage(hayTile, x, y)
     else target.drawTransparentImage(boneTile, x, y)
 }
 
-// 8x8 icon drawer (aligned perfectly for HUD size)
+// 8x8 icon drawer — uses scaled-down versions of actual tile images (generated in initTiles)
 function drawMatIconMini(target: Image, mat: number, x: number, y: number) {
-    if (mat == MAT_DIRT) target.drawTransparentImage(miniDirt, x, y)
-    else if (mat == MAT_STONE) target.drawTransparentImage(miniStone, x, y)
-    else if (mat == MAT_WOOD) target.drawTransparentImage(miniWood, x, y)
-    else if (mat == MAT_LEAVES) target.drawTransparentImage(miniLeaves, x, y)
-    else target.drawTransparentImage(miniBone, x, y)
+    if (mat == MAT_DIRT) target.drawTransparentImage(miniBricks, x, y)
+    else if (mat == MAT_STONE) target.drawTransparentImage(miniStoneBlock, x, y)
+    else if (mat == MAT_IRON) target.drawTransparentImage(miniSpikes, x, y)
+    else if (mat == MAT_WOOD) target.drawTransparentImage(miniTimber, x, y)
+    else if (mat == MAT_GRASS) target.drawTransparentImage(miniHay, x, y)
+    else target.drawTransparentImage(miniSkeleton, x, y)
 }
 
 function selectedIconY(): number {
     if (selectedMat == MAT_DIRT) return 42
     else if (selectedMat == MAT_STONE) return 54
     else if (selectedMat == MAT_WOOD) return 66
-    else if (selectedMat == MAT_LEAVES) return 78
+    else if (selectedMat == MAT_GRASS) return 78
     else if (selectedMat == MAT_BONE) return 90
-    else return 102
+    else if (selectedMat == MAT_IRON) return 102
+    else return 114
 }
 
-function drawBlockyZombie(target: Image, x: number, y: number) {
+function drawBlockyZombie_OLD(target: Image, x: number, y: number) {
     target.fillRect(x + 4, y, 8, 8, 7)
     target.fillRect(x + 2, y + 8, 12, 12, 6)
     target.fillRect(x, y + 10, 3, 8, 7)
@@ -89,7 +94,7 @@ function drawBlockyZombie(target: Image, x: number, y: number) {
     target.setPixel(x + 10, y + 3, 1)
 }
 
-function drawBlockyMiner(target: Image, x: number, y: number) {
+function drawBlockyMiner_OLD(target: Image, x: number, y: number) {
     target.fillRect(x + 4, y, 8, 8, 14)
     target.fillRect(x + 3, y + 8, 10, 12, 9)
     target.fillRect(x, y + 10, 3, 8, 12)
@@ -100,7 +105,7 @@ function drawBlockyMiner(target: Image, x: number, y: number) {
     target.setPixel(x + 10, y + 3, 1)
 }
 
-function drawTitle(target: Image) {
+function drawTitle_OLD(target: Image) {
     target.fillRect(0, 0, 160, 120, 9)
     target.fillRect(0, 72, 160, 48, 7)
     target.fillRect(0, 88, 160, 32, 4)
@@ -117,8 +122,8 @@ function drawTitle(target: Image) {
     target.print("MINEKRAFT", 52, 12, 1)
     target.print("by Luca", 62, 31, 1)
 
-    drawBlockyMiner(target, 35, 58)
-    drawBlockyZombie(target, 104, 58)
+    drawBlockyMiner_OLD(target, 35, 58)
+    drawBlockyZombie_OLD(target, 104, 58)
 
     target.fillRect(34, 86, 92, 30, 15)
     target.drawRect(34, 86, 92, 30, 1)
@@ -129,6 +134,60 @@ function drawTitle(target: Image) {
     } else {
         target.print("  START", 55, 92, 1)
         target.print("> SETTINGS", 48, 104, 1)
+    }
+}
+
+function drawRpgMiner(target: Image, x: number, y: number) {
+    target.drawTransparentImage(pDown, x, y)
+}
+
+function drawRpgZombie(target: Image, x: number, y: number) {
+    target.drawTransparentImage(zIdle, x, y)
+}
+
+function drawTitle(target: Image) {
+    // Dynamic sky background
+    target.fillRect(0, 0, 160, 120, 9)
+    target.fillRect(0, 72, 160, 48, 7)
+    target.fillRect(0, 88, 160, 32, 4)
+    target.fillRect(0, 102, 160, 18, 5)
+
+    // Forest inspired background
+    for (let x = 0; x < 160; x += 24) {
+        target.fillRect(x + 8, 46, 8, 34, 14)
+        target.fillRect(x, 34, 24, 18, 7)
+        target.fillRect(x + 4, 24, 16, 18, 6)
+    }
+
+    // Classic RPG Logo Box
+    target.fillRect(10, 5, 140, 42, 15)
+    target.drawRect(10, 5, 140, 42, 1)
+    target.drawRect(12, 7, 136, 38, 11) // Inner gold border
+    
+    // Title Text
+    target.print("MINEKRAFT", 52, 12, 1)
+    target.print("by Luca", 62, 31, 1)
+
+    // Draw characters
+    drawRpgMiner(target, 40, 60)
+    drawRpgZombie(target, 104, 60)
+    
+    // Small diamond in middle
+    target.drawTransparentImage(diamondTile, 72, 60)
+
+    // Main Menu Selection Box
+    target.fillRect(34, 84, 92, 34, 15)
+    target.drawRect(34, 84, 92, 34, 1)
+    target.drawRect(36, 86, 88, 30, 11)
+
+    if (titleChoice == 0) {
+        target.print("START", 60, 92, 2)
+        target.drawTransparentImage(arrowR, 44, 92)
+        target.print("SETTINGS", 52, 104, 1)
+    } else {
+        target.print("START", 60, 92, 1)
+        target.print("SETTINGS", 52, 104, 2)
+        target.drawTransparentImage(arrowR, 36, 104)
     }
 }
 
@@ -171,24 +230,30 @@ function drawOptions(target: Image) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             let col = (i >= 3) ? 5 : 1;
-            if (optionChoice == i) menuView.print("> " + labels[i], 16, iy, col)
-            else menuView.print("  " + labels[i], 16, iy, col)
+            if (optionChoice == i) {
+                menuView.drawTransparentImage(arrowR, 4, iy)
+                menuView.print(labels[i], 16, iy, col)
+            } else {
+                menuView.print(labels[i], 16, iy, col)
+            }
 
             if (i == 0) {
+                let valCol = (optionChoice == 0 && isEditingOption) ? 5 : 1
                 if (selectedLevels == INFINITY || demoMode) {
-                    menuView.print("<", 84, iy, 1)
-                    drawInfinity(menuView, 95, iy - 1, 1)
-                    menuView.print(">", 118, iy, 1)
+                    menuView.print("<", 84, iy, valCol)
+                    drawInfinity(menuView, 95, iy - 1, valCol)
+                    menuView.print(">", 118, iy, valCol)
                 } else {
-                    menuView.print("< " + selectedLevels + " >", 84, iy, 1)
+                    menuView.print("< " + selectedLevels + " >", 84, iy, valCol)
                 }
             } else if (i == 1) {
+                let valCol = (optionChoice == 1 && isEditingOption) ? 5 : 1
                 if (selectedHealth == INFINITY || demoMode) {
-                    menuView.print("<", 84, iy, 1)
-                    drawInfinity(menuView, 95, iy - 1, 1)
-                    menuView.print(">", 118, iy, 1)
+                    menuView.print("<", 84, iy, valCol)
+                    drawInfinity(menuView, 95, iy - 1, valCol)
+                    menuView.print(">", 118, iy, valCol)
                 } else {
-                    menuView.print("< " + selectedHealth + " >", 84, iy, 1)
+                    menuView.print("< " + selectedHealth + " >", 84, iy, valCol)
                 }
             } else if (i == 2) {
                 if (demoMode) menuView.print("< ON >", 84, iy, 1)
@@ -200,7 +265,7 @@ function drawOptions(target: Image) {
     // Drawing clipped menu viewport prevents overlapping the bottom legend
     target.drawTransparentImage(menuView, 12, 38)
     drawScrollIndicator(target, 146, 38, 60, 5 * itemHeight, menuScrollY, 1)
-    target.print("A:SELECT B:BACK", 26, 102, 1)
+    target.print("A:SEL L/R:ADJ B:BACK", 12, 102, 1)
 }
 
 function drawDifficultyMenu(target: Image) {
@@ -223,8 +288,12 @@ function drawDifficultyMenu(target: Image) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
             let col = (i == 2) ? 5 : 1;
-            if (difficultyChoice == i) menuView.print("> " + labels[i], 16, iy, col)
-            else menuView.print("  " + labels[i], 16, iy, col)
+            if (difficultyChoice == i) {
+                menuView.drawTransparentImage(arrowR, 4, iy)
+                menuView.print(labels[i], 16, iy, col)
+            } else {
+                menuView.print(labels[i], 16, iy, col)
+            }
 
             if (i == 0) {
                 menuView.print("< " + diffZombieSpeedLevel + " >", 84, iy, 1)
@@ -245,7 +314,7 @@ function drawObstaclesMenu(target: Image) {
     target.drawRect(10, 12, 140, 100, 1)
     printBold(target, "OBSTACLES", 44, 20, 1)
 
-    let itemHeight = 20;
+    let itemHeight = 18;
     let selectedY = obstacleChoicePos * itemHeight;
 
     if (selectedY - menuScrollY > 40) menuScrollY = selectedY - 40;
@@ -254,14 +323,18 @@ function drawObstaclesMenu(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["RIVERS", "SURVIVAL", "TOLLS"];
-    let toggles = [optRiver, optSurvive, optToll];
+    let labels = ["RIVERS", "SURVIVAL", "TOLLS", "KEY CRAWL"];
+    let toggles = [optRiver, optSurvive, optToll, optDungeon];
     
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
-            if (obstacleChoicePos == i) menuView.print("> " + labels[i], 16, iy + 4, 1)
-            else menuView.print("  " + labels[i], 16, iy + 4, 1)
+            if (obstacleChoicePos == i) {
+                menuView.drawTransparentImage(arrowR, 4, iy + 4)
+                menuView.print(labels[i], 16, iy + 4, 1)
+            } else {
+                menuView.print(labels[i], 16, iy + 4, 1)
+            }
 
             menuView.drawRect(90, iy + 2, 10, 10, 1)
             if (toggles[i]) {
@@ -271,7 +344,7 @@ function drawObstaclesMenu(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 12, 38)
-    drawScrollIndicator(target, 146, 38, 60, 3 * itemHeight, menuScrollY, 1)
+    drawScrollIndicator(target, 146, 38, 60, 4 * itemHeight, menuScrollY, 1)
     target.print("A:TOGGLE B:BACK", 22, 102, 1)
 }
 
@@ -312,11 +385,27 @@ function drawResourceHud(target: Image) {
         let pfx = survivalPhase == 1 ? "PREP:" : "SURV:"
         target.print(pfx + " " + ts, 44, 2, 15)
     } else if (activeObstacle == OBSTACLE_TOLL) {
-        target.fillRect(50, 0, 60, 12, 1)
-        target.drawRect(50, 0, 60, 12, 15)
-        target.print("TOLL:", 54, 2, 15)
-        drawMatIconMini(target, tollMat, 84, 2)
-        target.print("" + tollAmount, 94, 2, 15)
+        let tollCurrent = 0
+        if (tollMat == MAT_DIRT) tollCurrent = invDirt
+        else if (tollMat == MAT_STONE) tollCurrent = invStone
+        else if (tollMat == MAT_IRON) tollCurrent = invIron
+        else if (tollMat == MAT_WOOD) tollCurrent = invWood
+        else if (tollMat == MAT_GRASS) tollCurrent = invGrass
+        else if (tollMat == MAT_BONE) tollCurrent = invBones
+
+        let tollText = "TOLL:" + tollCurrent + "/" + tollAmount
+        let tollW = tollText.length * 6 + 14
+        target.fillRect(160 - tollW - w, 0, tollW, 12, 1)
+        target.drawRect(160 - tollW - w, 0, tollW, 12, 15)
+        drawMatIconMini(target, tollMat, 162 - tollW - w, 2)
+        target.print(tollText, 172 - tollW - w, 2, 15)
+    } else if (activeObstacle == OBSTACLE_DUNGEON) {
+        let text = hasDungeonKey ? "[KEY]" : "NO KEY"
+        let boxW = text.length * 6 + 4
+        target.fillRect(160 - boxW - w, 0, boxW, 12, 1)
+        target.drawRect(160 - boxW - w, 0, boxW, 12, 15)
+        let color = hasDungeonKey ? 5 : 15 // 5 = yellow, 15 = black (dark)
+        target.print(text, 162 - boxW - w, 2, color)
     }
 }
 
@@ -332,8 +421,9 @@ function drawTollDialog(target: Image) {
     let current = 0
     if (tollMat == MAT_DIRT) current = invDirt
     else if (tollMat == MAT_STONE) current = invStone
+    else if (tollMat == MAT_IRON) current = invIron
     else if (tollMat == MAT_WOOD) current = invWood
-    else if (tollMat == MAT_LEAVES) current = invLeaves
+    else if (tollMat == MAT_GRASS) current = invGrass
     else if (tollMat == MAT_BONE) current = invBones
 
     target.print("Has:", 30, 62, 1)
@@ -352,7 +442,7 @@ function drawInventory(target: Image) {
     printBold(target, "Inventory", 48, 28, 15)
 
     let itemHeight = 18;
-    let selectedY = selectedMat * itemHeight;
+    let selectedY = inventoryCursor * itemHeight;
 
     if (selectedY - menuScrollY > 40) menuScrollY = selectedY - 40;
     if (selectedY - menuScrollY < 0) menuScrollY = selectedY;
@@ -360,12 +450,12 @@ function drawInventory(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["Dirt Wall: " + invDirt, "Spikes: " + invStone, "Wood: " + invWood, "Leaves: " + invLeaves, "Skeleton: " + invBones, "Save Game"];
+    let labels = ["Bricks: " + invDirt, "Stone Blk: " + invStone, "Timber: " + invWood, "Hay: " + invGrass, "Skeleton: " + invBones, "Spikes: " + invIron, "Save Game"];
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
         let iy = y0 + i * itemHeight;
-        if (iy > -itemHeight && iy < 60) {
-            if (selectedMat == i) menuView.print(">", 4, iy + 4, 15)
+        if (iy > -itemHeight && iy < 92) {
+            if (inventoryCursor == i) menuView.drawTransparentImage(arrowR, 4, iy + 4)
 
             if (i != MAT_SAVE) {
                 drawMatIcon(menuView, i, 16, iy)
@@ -377,7 +467,7 @@ function drawInventory(target: Image) {
     }
 
     target.drawTransparentImage(menuView, 20, 42)
-    drawScrollIndicator(target, 138, 42, 60, 6 * itemHeight, menuScrollY, 15)
+    drawScrollIndicator(target, 138, 42, 60, 7 * itemHeight, menuScrollY, 15)
     target.print("A:select B:close", 20, 104, 15)
 }
 
@@ -433,36 +523,47 @@ function drawLoading(target: Image) {
 }
 
 function drawVictory(target: Image) {
-    target.fillRect(0, 0, 160, 120, 9)
-
-    for (let i = 0; i < 34; i++) {
-        let x = (i * 23 + Math.floor(game.runtime() / 20)) % 160
-        let y = (i * 17 + Math.floor(game.runtime() / 35)) % 120
-        target.fillRect(x, y, 3, 3, 2 + i % 12)
+    // Classic RPG Victory Screen
+    // Forest-inspired backdrop with a golden window
+    target.fillRect(0, 0, 160, 120, 15)
+    for (let x = 0; x < 160; x += 24) {
+        target.fillRect(x, 120 - 40, 24, 40, 7)
+        target.fillRect(x + 4, 120 - 60 + (x % 3) * 5, 16, 20, 6)
     }
 
-    target.fillRect(12, 14, 136, 56, 15)
-    target.drawRect(12, 14, 136, 56, 1)
-    target.print("MINEKRAFT", 52, 22, 1)
-    target.print("GAME COMPLETE", 34, 38, 1)
-    target.print("WELL DONE!", 48, 52, 1)
+    // Gold bordered window
+    target.fillRect(16, 16, 128, 88, 15)
+    target.drawRect(15, 15, 130, 90, 5) // Yellow
+    target.drawRect(14, 14, 132, 92, 4) // Orange
+    target.drawRect(16, 16, 128, 88, 1) // White inner border
 
-    drawBlockyMiner(target, 30, 76)
-    drawBlockyZombie(target, 114, 76)
+    printBold(target, "VICTORY", 52, 28, 5)
+    
+    // Draw player and diamond
+    target.drawTransparentImage(pDown, 60, 54)
+    target.drawTransparentImage(tileImages[DIAMOND], 84, 54)
 
-    target.fillRect(42, 78, 76, 31, 1)
-    target.drawRect(42, 78, 76, 31, 15)
-    target.print("© 2026", 55, 84, 15)
-    target.print("Luca Kraev", 44, 96, 15)
+    target.print("GAME COMPLETE", 28, 80, 1)
+    target.print("Press A", 54, 94, 5)
 }
 
 function drawGameOver(target: Image) {
-    target.fillRect(0, 0, 160, 120, 15)
-    target.fillRect(12, 30, 136, 60, 1)
-    target.drawRect(12, 30, 136, 60, 2)
+    // Classic RPG Game Over Screen
+    // Spooky red sky backdrop
+    target.fillRect(0, 0, 160, 120, 2)
+    for (let x = 0; x < 160; x += 24) {
+        target.fillRect(x, 120 - 40, 24, 40, 15)
+        target.fillRect(x + 4, 120 - 60 + (x % 3) * 5, 16, 20, 15)
+    }
+
+    // Red bordered window
+    target.fillRect(20, 30, 120, 60, 15)
+    target.drawRect(19, 29, 122, 62, 2) // Red
+    target.drawRect(18, 28, 124, 64, 2) // Red
+    target.drawRect(20, 30, 120, 60, 1) // White inner border
 
     printBold(target, "GAME OVER", 44, 45, 2)
-    target.print("press A", 54, 70, 2)
+    target.print("Press A", 54, 70, 1)
 }
 
 function drawDemoPausedBanner(target: Image) {
@@ -475,3 +576,58 @@ function drawDemoPausedBanner(target: Image) {
 }
 
 
+// --------------------------------------------------------------------------
+// Banner system — dissolving phase announcements.
+
+// --------------------------------------------------------------------------
+function showBanner(text: string) {
+    bannerText = text
+    bannerUntil = game.runtime() + 2500 // 2.5 seconds
+}
+
+function drawBanner(target: Image) {
+    if (bannerText == "" || game.runtime() > bannerUntil) {
+        bannerText = ""
+        return
+    }
+
+    let remaining = bannerUntil - game.runtime()
+    let textWidth = bannerText.length * 6
+    let boxW = textWidth + 16
+    let boxX = 80 - Math.floor(boxW / 2)
+    let boxY = 36
+    let boxH = 20
+
+    // Draw solid banner
+    target.fillRect(boxX, boxY, boxW, boxH, 1)
+    target.drawRect(boxX, boxY, boxW, boxH, 15)
+    printBold(target, bannerText, boxX + 8, boxY + 6, 15)
+
+    // Dissolve effect: punch random transparent holes during last 800ms
+    if (remaining < 800) {
+        let dissolveStrength = Math.floor((800 - remaining) / 50) // 0-16 passes
+        for (let pass = 0; pass < dissolveStrength; pass++) {
+            for (let dx = 0; dx < boxW; dx += 2) {
+                for (let dy = 0; dy < boxH; dy += 2) {
+                    if (randint(0, 3) == 0) {
+                        target.setPixel(boxX + dx, boxY + dy, 0)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// --------------------------------------------------------------------------
+// Harvest gate HUD — shows mining progress counter.
+
+// --------------------------------------------------------------------------
+function drawHarvestGate(target: Image) {
+    if (harvestGoal <= 0) return
+    let text = "MINED:" + harvestCount + "/" + harvestGoal
+    let w = text.length * 6 + 4
+    target.fillRect(160 - w, 13, w, 11, 1)
+    target.drawRect(160 - w, 13, w, 11, 15)
+    target.print(text, 162 - w, 15, 15)
+}

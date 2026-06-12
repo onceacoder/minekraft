@@ -81,9 +81,9 @@ function updateDiamondMarker() {
 }
 
 function moveInventorySelection(amount: number) {
-    selectedMat += amount
-    if (selectedMat < MAT_DIRT) selectedMat = MAT_SAVE
-    if (selectedMat > MAT_SAVE) selectedMat = MAT_DIRT
+    inventoryCursor += amount
+    if (inventoryCursor < MAT_DIRT) inventoryCursor = MAT_SAVE
+    if (inventoryCursor > MAT_SAVE) inventoryCursor = MAT_DIRT
 }
 
 function setupLevel() {
@@ -96,9 +96,21 @@ function setupLevel() {
     if (optRiver) activeOpts.push(OBSTACLE_RIVER)
     if (optSurvive) activeOpts.push(OBSTACLE_SURVIVE)
     if (optToll) activeOpts.push(OBSTACLE_TOLL)
+    if (optDungeon) activeOpts.push(OBSTACLE_DUNGEON)
 
     if (activeOpts.length > 0) {
-        activeObstacle = activeOpts[randint(0, activeOpts.length - 1)]
+        // Guarantee no consecutive repeats by filtering out the previous obstacle
+        let filteredOpts: number[] = []
+        for (let fo = 0; fo < activeOpts.length; fo++) {
+            if (activeOpts[fo] != lastObstacle) filteredOpts.push(activeOpts[fo])
+        }
+        // Use filtered list if possible, otherwise fall back to full list (single option enabled)
+        if (filteredOpts.length > 0) {
+            activeObstacle = filteredOpts[randint(0, filteredOpts.length - 1)]
+        } else {
+            activeObstacle = activeOpts[randint(0, activeOpts.length - 1)]
+        }
+        lastObstacle = activeObstacle
     } else {
         activeObstacle = OBSTACLE_NONE // Classic mode
     }
@@ -108,8 +120,9 @@ function setupLevel() {
         survivalTimer = 120000 // 120 seconds (2 mins)
     } else if (activeObstacle == OBSTACLE_TOLL) {
         // Toll scales up with the level depth, randomly picks a single material requirement
-        tollMat = randint(0, 4) // MAT_DIRT to MAT_BONE
-        tollAmount = randint(5, 10)
+        tollMat = randint(0, 5) // MAT_DIRT to MAT_IRON
+        tollAmount = randint(3 + level, 8 + level * 2)
+        if (tollAmount > 20) tollAmount = 20
     }
 
     generateWorld() // Physically generate the grid layout
@@ -133,16 +146,41 @@ function setupLevel() {
     createDiamondMarker()
     if (activeObstacle == OBSTACLE_SURVIVE) {
         diamondMarker.setFlag(SpriteFlag.Invisible, true)
-        rawSetTile(goalCol, goalRow, GRASS)
+        setTile(goalCol, goalRow, GRASS)
     }
 
     maxZombies = 5 + level + diffZombieCountOffset
     if (maxZombies < 0) maxZombies = 0
     if (maxZombies > 15) maxZombies = 15
 
+    // Harvest gate: diamond hidden until player mines enough blocks
+    // Skip in Survive mode (has its own diamond timing) and Toll/Dungeon mode (have their own gates)
+    harvestCount = 0
+    if (activeObstacle == OBSTACLE_RIVER) {
+        harvestGoal = 3 + Math.floor(level * 1.5)
+        if (harvestGoal > 20) harvestGoal = 20
+        diamondMarker.setFlag(SpriteFlag.Invisible, true)
+        setTile(goalCol, goalRow, GRASS)
+    } else {
+        harvestGoal = 0 // No harvest gate for Survive, Toll, Dungeon, or None
+    }
+
     invincible = false
     inventoryOpen = false
     gameState = PLAYING
+    
+    inDungeon = false
+    hasDungeonKey = false
+    overworldBuffer = null
+    waterBridgeCols = []
+    waterBridgeRows = []
+
+    // Announce the active obstacle
+    if (activeObstacle == OBSTACLE_RIVER) showBanner("RIVER CROSSING")
+    else if (activeObstacle == OBSTACLE_SURVIVE) showBanner("ZOMBIE SURVIVAL")
+    else if (activeObstacle == OBSTACLE_TOLL) showBanner("TOLL ROAD")
+    else if (activeObstacle == OBSTACLE_DUNGEON) showBanner("KEY CRAWL")
+    else showBanner("FIND THE DIAMOND")
 
     resumePlayer()
     playLevelMusic()
@@ -168,8 +206,9 @@ function startGame() {
     invDirt = 0
     invStone = 0
     invWood = 0
-    invLeaves = 0
+    invGrass = 0
     invBones = 0
+    invIron = 0
     selectedMat = MAT_DIRT
 
     if (demoMode) {

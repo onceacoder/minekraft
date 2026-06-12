@@ -21,57 +21,8 @@ let cursorImg = img`
     2 2 2 . . . . . . . . . . 2 2 2
 `
 
-// 8x8 Mini-Icons
-let miniDirt = img`
-    . e e e e e e .
-    e e e f e e e e
-    e f e e e f e e
-    e e e e e e e e
-    e e f e e e e e
-    e e e e f e e e
-    e e e e e e f e
-    . e e e e e e .
-`
-let miniStone = img`
-    . b b b b b b .
-    b c c b c b c b
-    b b c b b b c b
-    b c b b c b b b
-    b b b c b b c b
-    b c b b b b b b
-    b b c b c b b b
-    . b b b b b b .
-`
-let miniWood = img`
-    . e e e e e e .
-    e e e d d e e e
-    e e d d d d e e
-    e d d d d d d e
-    e e d d d d e e
-    e e e d d e e e
-    e e e e e e e e
-    . e e e e e e .
-`
-let miniLeaves = img`
-    . 7 7 7 7 7 7 .
-    7 7 6 7 7 6 7 7
-    7 6 7 7 7 7 7 7
-    7 7 7 6 7 7 6 7
-    7 7 7 7 7 7 7 7
-    7 6 7 7 6 7 7 7
-    7 7 7 7 7 7 6 7
-    . 7 7 7 7 7 7 .
-`
-let miniBone = img`
-    . . . . . . . .
-    . 1 1 . . 1 1 .
-    . 1 f 1 1 f 1 .
-    . 1 f f f f 1 .
-    . . 1 f f 1 . .
-    . 1 f f f f 1 .
-    . 1 f 1 1 f 1 .
-    . 1 1 . . 1 1 .
-`
+// 8x8 Mini-Icons are now auto-generated from actual tile images via scaleDownHalf()
+// in world.ts initTiles(). See: miniDirtWall, miniSpikes, miniWoodTile, miniLeavesTile, miniBoneTile
 
 // Classic RPG Golden UI Pointers
 let arrowR = img`

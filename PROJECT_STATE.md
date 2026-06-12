@@ -1,0 +1,45 @@
+# Minekraft - LLM Agent Project State
+
+> **Notice to AI Agents:** Read this document immediately upon entering the workspace. It contains critical context, strict environmental constraints, and the current state of the project to enable seamless "vibe coding" handoffs between multiple agents in succession.
+
+## 1. Project Vision
+**Minekraft** is a 2D top-down survival, building, and exploration game built natively for Microsoft MakeCode Arcade. The game uses a classic 16-bit RPG aesthetic (high detail pixel art, highlighting/shadowing, Zelda-like dungeons) and relies purely on MakeCode's Static TypeScript (STS).
+
+## 2. Strict Architectural Constraints (CRITICAL)
+MakeCode Arcade runs on severely constrained hardware (like the EF08247 microcontroller). You **must** adhere to the following rules:
+1. **No External Extensions:** Avoid using `arcade-animation`, `arcade-minimap`, etc. We have built custom arrays and `tickCoreAnimations()` loops to prevent hardware memory leaks.
+2. **No Dynamic Properties (`sprite.data`):** The STS compiler will reject dynamic JS properties. **You must use parallel arrays** (e.g., `zombieRefs: Sprite[]` and `zombieModes: number[]`) to track state, and use `.indexOf()` or `.allOfKind()` for lookups.
+3. **Strict Memory Management:** If you create visual effect sprites (like block-breaking), you **must** assign them a `lifespan` immediately. If you destroy a tracked sprite (like a zombie), you **must** manually `splice()` it from its parallel tracking arrays *before* calling `.destroy()`.
+4. **Integer Math Only:** Avoid floating-point division for grid operations. Always wrap coordinate manipulation in `Math.floor()`.
+5. **Tile Asset Design:** All tiles are drawn procedurally in `world.ts`. They must adhere to a strict RPG aesthetic (highlights on top/left, shadows on bottom/right), avoiding generic randomized scatter algorithms.
+
+## 3. Codebase Structure
+* **`constants.ts`:** Global variables, inventory, tile ID mappings, and parallel arrays for sprite tracking (zombies, skeletons, water bridges).
+* **`world.ts`:** Procedural tilemap generation and the low-level rendering logic for the 16-color RPG tiles.
+* **`player.ts`:** Player movement, animation, resource harvesting, smart building (with water bridge tracking to restore water instead of grass).
+* **`enemies.ts`:** Zombie AI, skeleton Dijkstra pathfinding, combat logic.
+* **`dungeon.ts`:** Procedural generation of Zelda-style sub-worlds (single-path dungeon, lock/key progression).
+* **`game_lifecycle.ts`:** Level generation flow and obstacle management (`River`, `Survive`, `Toll`, `Dungeon`, `None`).
+* **`save.ts`:** Flash memory serialization/deserialization. Contains `suspendOverworld` and `restoreOverworld` for seamless dungeon transitions.
+* **`audio.ts`:** Procedural tone-based music generation (overworld theme, tension-building dark dungeon theme).
+* **`ui.ts`:** Custom scrolling UI, inventory, Toll dialogs, and heads-up display logic.
+* **`main.ts`:** Global lifecycle, entry point, and the master `game.onUpdate` loop.
+* **`demo.ts`:** Autonomous AI state-machine that plays the game.
+
+## 4. Current Project State & Recent Implementations
+* **RPG Visual Overhaul:** All primary tiles (Dirt, Stone, Bedrock, Wood, Leaves, Spikes, Iron Ore, Dungeon Floor, etc.) have been completely overhauled to feature high-detail 16-bit RPG styling.
+* **Dungeon Sub-Levels:** The "Key Crawl" feature successfully suspends the main overworld into memory, loads an isolated procedural dungeon with skeletons, requires finding a key to unlock the exit, and smoothly restores the overworld upon exiting.
+* **Procedural Dungeon Audio:** Dungeons now feature a unique, tension-building D-Phrygian dark ambient track.
+* **Water Bridge Fix:** Placing blocks over `WATER` is now tracked via `waterBridgeCols`/`waterBridgeRows` in `constants.ts`. Destroying those blocks restores `WATER` instead of defaulting to `GRASS`.
+
+## 5. Development Workflow
+If you modify code, compile it using:
+```bash
+pxt build && cp built/binary.js assets/js/binary.js
+```
+*Note: The local `index.html` simulator loads from `assets/js/binary.js`, so the copy step is mandatory after `pxt build` to see your changes.*
+
+## 6. Handoff Notes for the Next Agent
+* Review the `ui.ts` elements if you add new features to ensure they use consistent RPG themes (e.g., color 15 for dark text, color 5 for yellow highlights).
+* If expanding the `dungeon.ts` generation logic, ensure that memory cleanup happens in `exitDungeon()` to prevent OOM errors on subsequent runs.
+* Update this document whenever a major structural change or new core mechanic is added.

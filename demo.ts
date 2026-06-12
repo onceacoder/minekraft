@@ -108,7 +108,7 @@ function demoCanAffordToll(): boolean {
     if (tollMat == MAT_DIRT) current = invDirt
     else if (tollMat == MAT_STONE) current = invStone
     else if (tollMat == MAT_WOOD) current = invWood
-    else if (tollMat == MAT_LEAVES) current = invLeaves
+    else if (tollMat == MAT_GRASS) current = invGrass
     else if (tollMat == MAT_BONE) current = invBones
     return current >= tollAmount
 }
@@ -118,7 +118,7 @@ function demoIsTileTollMaterial(tid: number): boolean {
     if (tollMat == MAT_DIRT && tid == DIRT) return true
     if (tollMat == MAT_STONE && tid == STONE) return true
     if (tollMat == MAT_WOOD && tid == WOOD) return true
-    if (tollMat == MAT_LEAVES && tid == LEAVES) return true
+    if (tollMat == MAT_GRASS && tid == GRASS) return true
     if (tollMat == MAT_BONE && tid == BONE) return true
     return false
 }
@@ -342,13 +342,13 @@ function demoHarvestBlocker(vx: number, vy: number): boolean {
 
 function demoSelectRandomMaterialWithStock(): boolean {
     for (let attempt = 0; attempt < 8; attempt++) {
-        selectedMat = randint(MAT_DIRT, MAT_LEAVES)
+        selectedMat = randint(MAT_DIRT, MAT_GRASS)
         if (matCount() > 0) return true
     }
     if (invDirt > 0) { selectedMat = MAT_DIRT; return true; }
     if (invStone > 0) { selectedMat = MAT_STONE; return true; }
     if (invWood > 0) { selectedMat = MAT_WOOD; return true; }
-    if (invLeaves > 0) { selectedMat = MAT_LEAVES; return true; }
+    if (invGrass > 0) { selectedMat = MAT_GRASS; return true; }
     return false
 }
 

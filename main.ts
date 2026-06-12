@@ -28,20 +28,52 @@ game.onUpdate(function () {
     tickCoreAnimations()
     tickSkeletons()
 
+    if (gameState == DUNGEON_TRANSITION) {
+        let cx = scene.cameraProperty(CameraProperty.X)
+        let cy = scene.cameraProperty(CameraProperty.Y)
+        let speed = 4
+        
+        let dx = targetCameraX - cx
+        let dy = targetCameraY - cy
+        
+        if (Math.abs(dx) <= speed && Math.abs(dy) <= speed) {
+            scene.centerCameraAt(targetCameraX, targetCameraY)
+            gameState = PLAYING
+            resumePlayer()
+            
+            // Push player slightly into the room to ensure they crossed the boundary completely
+            let rx = Math.floor(player.x / 160)
+            let ry = Math.floor(player.y / 128)
+            // If they are on the edge, push them inside
+            if (player.x % 160 < 10) player.x += 12
+            else if (player.x % 160 > 150) player.x -= 12
+            
+            if (player.y % 128 < 10) player.y += 12
+            else if (player.y % 128 > 118) player.y -= 12
+        } else {
+            if (Math.abs(dx) > 0) cx += Math.sign(dx) * speed
+            if (Math.abs(dy) > 0) cy += Math.sign(dy) * speed
+            scene.centerCameraAt(cx, cy)
+        }
+        return
+    }
+
     if (gameState == TOLL_DIALOG && demoMode) {
         if (game.runtime() % 1000 < 50) { // Slight delay to show dialog before acting
             let current = 0
             if (tollMat == MAT_DIRT) current = invDirt
             else if (tollMat == MAT_STONE) current = invStone
+            else if (tollMat == MAT_IRON) current = invIron
             else if (tollMat == MAT_WOOD) current = invWood
-            else if (tollMat == MAT_LEAVES) current = invLeaves
+            else if (tollMat == MAT_GRASS) current = invGrass
             else if (tollMat == MAT_BONE) current = invBones
 
             if (current >= tollAmount) {
                 if (tollMat == MAT_DIRT) invDirt -= tollAmount
                 else if (tollMat == MAT_STONE) invStone -= tollAmount
+                else if (tollMat == MAT_IRON) invIron -= tollAmount
                 else if (tollMat == MAT_WOOD) invWood -= tollAmount
-                else if (tollMat == MAT_LEAVES) invLeaves -= tollAmount
+                else if (tollMat == MAT_GRASS) invGrass -= tollAmount
                 else if (tollMat == MAT_BONE) invBones -= tollAmount
 
                 gameState = PLAYING
@@ -71,17 +103,28 @@ game.onUpdate(function () {
                 // Prep phase is over, start survive phase
                 survivalPhase = 2
                 survivalTimer = randint(120000, 300000) // 2-5 minutes
+                showBanner("ZOMBIE ATTACK!")
                 music.playTone(523, 200)
                 music.playTone(493, 300)
             } else if (survivalPhase == 2) {
                 // Survive phase is over, spawn diamond
                 survivalPhase = 0
                 survivalTimer = 0
-                rawSetTile(goalCol, goalRow, DIAMOND)
+                setTile(goalCol, goalRow, DIAMOND)
                 if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+                showBanner("DIAMOND APPEARED!")
                 music.playTone(440, 500)
             }
         }
+    }
+
+    // Harvest gate: reveal diamond when mining target reached
+    if (harvestGoal > 0 && harvestCount >= harvestGoal && activeObstacle != OBSTACLE_SURVIVE) {
+        harvestGoal = 0 // Gate cleared, stop checking
+        setTile(goalCol, goalRow, DIAMOND)
+        if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+        showBanner("DIAMOND APPEARED!")
+        music.playTone(440, 500)
     }
 
     if (inventoryOpen) {
@@ -95,6 +138,7 @@ game.onUpdate(function () {
     } else {
         updateFacing()
         autoAlignPlayer()
+        if (inDungeon) updateDungeonCamera()
     }
 
     // Update the visual representation of the player's facing direction and animation state
@@ -106,34 +150,43 @@ game.onUpdate(function () {
         if (targetCursor != null) targetCursor.setFlag(SpriteFlag.Invisible, true)
     }
 
-    // Check if enemies walked onto Spike traps
-    for (let zombie of sprites.allOfKind(SpriteKind.Enemy)) {
-        let zCol = Math.floor(zombie.x / TILE)
-        let zRow = Math.floor(zombie.y / TILE)
+    // Check if enemies walked onto Spike traps (throttled to every 4 frames)
+    spikeCheckCounter++
+    if (spikeCheckCounter >= 4) {
+        spikeCheckCounter = 0
 
-        if (getTileId(zCol, zRow) == SPIKES) {
-            setTile(zCol, zRow, GRASS) // Trap breaks after one use
-            forgetZombie(zombie)
-            zombie.destroy(effects.fire, 200)
-            breakEffect(zCol, zRow)
+        for (let zombie of sprites.allOfKind(SpriteKind.Enemy)) {
+            let zCol = Math.floor(zombie.x / TILE)
+            let zRow = Math.floor(zombie.y / TILE)
+
+            if (getTileId(zCol, zRow) == SPIKES) {
+                setTile(zCol, zRow, GRASS) // Trap breaks after one use
+                forgetZombie(zombie)
+                zombie.destroy(effects.fire, 200)
+                breakEffect(zCol, zRow)
+            }
+        }
+
+        for (let skel of sprites.allOfKind(SpriteKind.Skeleton)) {
+            let sCol = Math.floor(skel.x / TILE)
+            let sRow = Math.floor(skel.y / TILE)
+
+            if (getTileId(sCol, sRow) == SPIKES) {
+                setTile(sCol, sRow, GRASS) // Trap breaks after one use
+                forgetSkeleton(skel)
+                skel.destroy(effects.fire, 200)
+                breakEffect(sCol, sRow)
+                updateSkeletonTargeting()
+            }
         }
     }
 
-    for (let skel of sprites.allOfKind(SpriteKind.Skeleton)) {
-        let sCol = Math.floor(skel.x / TILE)
-        let sRow = Math.floor(skel.y / TILE)
+    // Tile collision detection
+    let pCol = playerCol()
+    let pRow = playerRow()
+    let pTile = getTileId(pCol, pRow)
 
-        if (getTileId(sCol, sRow) == SPIKES) {
-            setTile(sCol, sRow, GRASS) // Trap breaks after one use
-            forgetSkeleton(skel)
-            skel.destroy(effects.fire, 200)
-            breakEffect(sCol, sRow)
-            updateSkeletonTargeting()
-        }
-    }
-
-    // Goal collision detection
-    if (getTileId(playerCol(), playerRow()) == DIAMOND) {
+    if (pTile == DIAMOND) {
         if (activeObstacle == OBSTACLE_TOLL) {
             gameState = TOLL_DIALOG
             stopPlayer()
@@ -142,6 +195,57 @@ game.onUpdate(function () {
             // Standard level completion
             finishLevel()
         }
+    } else if (pTile == CAVE_ENTRANCE && !inDungeon) {
+        // Enter Dungeon
+        inDungeon = true
+        dungeonReturnCol = pCol
+        dungeonReturnRow = pRow
+        
+        suspendOverworld()
+        if (diamondMarker) {
+            diamondMarker.setFlag(SpriteFlag.Invisible, true)
+            effects.clearParticles(diamondMarker)
+        }
+        
+        for (let z of sprites.allOfKind(SpriteKind.Enemy)) { forgetZombie(z); z.destroy() }
+        
+        generateDungeon()
+        
+        // Spawn in the designated dungeon spawn room
+        player.x = dungeonSpawnCol * TILE + 8
+        player.y = dungeonSpawnRow * TILE + 8
+        // Initialize camera
+        currentRoomX = Math.floor(player.x / 160)
+        currentRoomY = Math.floor(player.y / 128)
+        scene.cameraFollowSprite(null)
+        scene.centerCameraAt(currentRoomX * 160 + 80, currentRoomY * 128 + 64)
+        stopLevelMusic()
+        music.playTone(131, 300)
+        playDungeonMusic()
+        showBanner("DUNGEON")
+    } else if (pTile == KEY) {
+        // Key pickup
+        hasDungeonKey = true
+        inDungeon = false
+        for (let z of sprites.allOfKind(SpriteKind.Enemy)) { forgetZombie(z); z.destroy() }
+        
+        restoreOverworld()
+        if (diamondMarker && activeObstacle != OBSTACLE_SURVIVE) {
+            diamondMarker.setFlag(SpriteFlag.Invisible, false)
+            diamondMarker.startEffect(effects.coolRadial)
+        }
+        
+        tiles.setTilemap(tiles.createTilemap(world, layout, tileImages, TileScale.Sixteen))
+        refreshMap()
+        scene.cameraFollowSprite(player)
+        // Change CAVE_ENTRANCE to KEY_HOLE
+        setTile(dungeonReturnCol, dungeonReturnRow, KEY_HOLE)
+        player.x = dungeonReturnCol * TILE + 8
+        player.y = (dungeonReturnRow - 1) * TILE + 8
+        music.playTone(523, 300)
+        stopLevelMusic()
+        playLevelMusic()
+        showBanner("KEY FOUND")
     }
 })
 
@@ -159,8 +263,10 @@ scene.createRenderable(100, function (target: Image, camera: scene.Camera) {
     else if (gameState == PLAYING) {
         drawGoalPointer(target)
         drawResourceHud(target)
+        drawHarvestGate(target)
         drawInventory(target)
         drawDemoPausedBanner(target)
+        drawBanner(target)
     } else if (gameState == TOLL_DIALOG) {
         drawGoalPointer(target)
         drawResourceHud(target)

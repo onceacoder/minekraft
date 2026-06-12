@@ -18,7 +18,31 @@ let woodTile: Image = null
 let leavesTile: Image = null
 let boneTile: Image = null
 let waterTile: Image = null
+let ironOreTile: Image = null
+let bricksTile: Image = null
+let stoneBlockTile: Image = null
+let timberTile: Image = null
+let tallGrassTile: Image = null
+let hayTile: Image = null
+let caveEntranceTile: Image = null
+let dungeonWallTile: Image = null
+let keyHoleTile: Image = null
+let dungeonFloorTile: Image = null
+let keyTile: Image = null
 let tileImages: Image[] = []
+
+// Scaled-down 8x8 versions of tile images, derived from the actual tiles
+// so they always match the current theme. Generated in initTiles().
+let miniDirtWall: Image = null
+let miniSpikes: Image = null
+let miniWoodTile: Image = null
+let miniLeavesTile: Image = null
+let miniBoneTile: Image = null
+let miniBricks: Image = null
+let miniStoneBlock: Image = null
+let miniTimber: Image = null
+let miniHay: Image = null
+let miniSkeleton: Image = null // Represents the skeleton icon
 
 // Pre-initialize basic tiles so rendering functions have valid image references.
 initTiles()
@@ -58,22 +82,59 @@ function makeGrass(): Image {
 }
 
 function makeDirt(): Image {
-    let im = makePattern(4, 5)
+    let im = image.create(16, 16)
+    im.fill(4)  // Brown base
     im.drawRect(0, 0, 16, 16, 15)
+    // Soil layers
+    im.drawLine(1, 4, 14, 4, 5)
+    im.drawLine(1, 9, 14, 9, 5)
+    // Pebbles / soil detail
+    im.fillRect(3, 2, 2, 1, 14)
+    im.fillRect(10, 1, 2, 1, 14)
+    im.fillRect(6, 6, 2, 1, 14)
+    im.fillRect(12, 7, 2, 1, 14)
+    im.fillRect(2, 11, 2, 1, 14)
+    im.fillRect(8, 12, 2, 1, 14)
+    // Lighter top highlights
+    im.drawLine(1, 1, 14, 1, 5)
     return im
 }
 
 function makeStone(): Image {
-    let im = makePattern(12, 14)
+    let im = image.create(16, 16)
+    im.fill(12)
     im.drawRect(0, 0, 16, 16, 15)
+    // Stone block joints
+    im.drawLine(0, 5, 15, 5, 11)
+    im.drawLine(0, 10, 15, 10, 11)
+    im.drawLine(6, 0, 6, 5, 11)
+    im.drawLine(11, 5, 11, 10, 11)
+    im.drawLine(3, 10, 3, 15, 11)
+    // Lighter highlights on top edges
+    im.drawLine(1, 1, 5, 1, 13)
+    im.drawLine(7, 1, 14, 1, 13)
+    im.drawLine(1, 6, 10, 6, 13)
+    im.drawLine(12, 6, 14, 6, 13)
+    im.drawLine(1, 11, 2, 11, 13)
+    im.drawLine(4, 11, 14, 11, 13)
     return im
 }
 
 function makeBedrock(): Image {
     let im = image.create(16, 16)
-    im.fill(15)
-    for (let y = 0; y < 16; y += 4) im.drawLine(0, y, 15, y, 1)
-    for (let x = 0; x < 16; x += 4) im.drawLine(x, 0, x, 15, 1)
+    im.fill(15)  // Black base
+    // Large stone blocks
+    im.drawLine(0, 5, 15, 5, 11)
+    im.drawLine(0, 10, 15, 10, 11)
+    im.drawLine(8, 0, 8, 5, 11)
+    im.drawLine(4, 5, 4, 10, 11)
+    im.drawLine(12, 10, 12, 15, 11)
+    // Surface cracks
+    im.setPixel(3, 2, 11)
+    im.setPixel(4, 3, 11)
+    im.setPixel(11, 7, 11)
+    im.setPixel(7, 13, 11)
+    im.setPixel(2, 12, 11)
     return im
 }
 
@@ -91,13 +152,29 @@ function makeDirtWall(): Image {
 
 function makeSpikes(): Image {
     let im = image.create(16, 16)
-    im.fill(12)
+    im.fill(11)  // Dark base
     im.drawRect(0, 0, 16, 16, 15)
-    for (let x = 1; x < 16; x += 4) {
-        im.drawLine(x, 14, x + 2, 4, 15)
-        im.drawLine(x + 2, 4, x + 4, 14, 15)
-        im.setPixel(x + 2, 4, 2)
-    }
+    // Base plate
+    im.fillRect(1, 12, 14, 3, 12)
+    im.drawLine(1, 12, 14, 12, 13)
+    // Spike 1 (left)
+    im.drawLine(3, 12, 3, 5, 12)
+    im.drawLine(2, 12, 2, 7, 11)
+    im.drawLine(4, 12, 4, 7, 13)
+    im.setPixel(3, 4, 1)  // Sharp tip
+    im.setPixel(3, 5, 13)
+    // Spike 2 (center)
+    im.drawLine(8, 12, 8, 4, 12)
+    im.drawLine(7, 12, 7, 6, 11)
+    im.drawLine(9, 12, 9, 6, 13)
+    im.setPixel(8, 3, 1)
+    im.setPixel(8, 4, 13)
+    // Spike 3 (right)
+    im.drawLine(13, 12, 13, 6, 12)
+    im.drawLine(12, 12, 12, 8, 11)
+    im.drawLine(14, 12, 14, 8, 13)
+    im.setPixel(13, 5, 1)
+    im.setPixel(13, 6, 13)
     return im
 }
 
@@ -138,34 +215,293 @@ function makeWood(): Image {
 }
 
 function makeLeaves(): Image {
-    let im = makePattern(7, 6)
+    let im = image.create(16, 16)
+    im.fill(7)  // Dark green base
     im.drawRect(0, 0, 16, 16, 15)
+    // Leaf clusters (lighter green patches)
+    im.fillRect(2, 2, 3, 3, 6)
+    im.fillRect(9, 1, 4, 3, 6)
+    im.fillRect(5, 6, 3, 3, 6)
+    im.fillRect(11, 7, 3, 3, 6)
+    im.fillRect(1, 10, 3, 3, 6)
+    im.fillRect(7, 11, 4, 3, 6)
+    // Highlight spots
+    im.setPixel(3, 3, 10)
+    im.setPixel(10, 2, 10)
+    im.setPixel(6, 7, 10)
+    im.setPixel(12, 8, 10)
+    im.setPixel(2, 11, 10)
+    im.setPixel(8, 12, 10)
     return im
 }
 
 function makeBone(): Image {
-    let im = makePattern(13, 1)
+    let im = image.create(16, 16)
+    im.fill(13)  // Tan/sandy ground
     im.drawRect(0, 0, 16, 16, 15)
-    // Draw a small bone shape
-    im.setPixel(5, 5, 1)
-    im.setPixel(5, 6, 1)
-    im.setPixel(6, 5, 1)
-    im.drawLine(6, 6, 9, 9, 1)
-    im.setPixel(9, 10, 1)
-    im.setPixel(10, 9, 1)
-    im.setPixel(10, 10, 1)
+    // Scattered flecks for ground texture
+    im.setPixel(2, 2, 14)
+    im.setPixel(9, 1, 14)
+    im.setPixel(13, 3, 14)
+    im.setPixel(1, 12, 14)
+    im.setPixel(12, 13, 14)
+    // Skull (top center)
+    im.fillRect(6, 3, 4, 4, 1)  // Skull body
+    im.setPixel(5, 4, 1)
+    im.setPixel(10, 4, 1)
+    im.setPixel(7, 4, 15)  // Left eye
+    im.setPixel(8, 4, 15)  // Right eye
+    im.setPixel(7, 6, 15)  // Mouth left
+    im.setPixel(8, 6, 15)  // Mouth right
+    // Crossbones below skull
+    im.drawLine(4, 8, 11, 13, 1)
+    im.drawLine(11, 8, 4, 13, 1)
+    // Bone knobs at ends
+    im.setPixel(3, 8, 1)
+    im.setPixel(12, 8, 1)
+    im.setPixel(3, 13, 1)
+    im.setPixel(12, 13, 1)
+    return im
+}
+
+function makeIronOre(): Image {
+    let im = image.create(16, 16)
+    im.fill(12)  // Grey stone base
+    im.drawRect(0, 0, 16, 16, 15)
+    // Stone block joints (like stone tile)
+    im.drawLine(0, 7, 15, 7, 11)
+    im.drawLine(8, 0, 8, 7, 11)
+    im.drawLine(4, 7, 4, 15, 11)
+    // Embedded iron ore veins (rust orange/brown)
+    im.fillRect(2, 2, 3, 3, 4)
+    im.setPixel(3, 3, 14)  // Bright center
+    im.fillRect(10, 3, 3, 2, 4)
+    im.setPixel(11, 3, 14)
+    im.fillRect(5, 10, 4, 3, 4)
+    im.setPixel(6, 11, 14)
+    im.setPixel(7, 11, 14)
+    im.fillRect(12, 11, 2, 2, 4)
+    return im
+}
+
+function makeBricks(): Image {
+    let im = image.create(16, 16)
+    im.fill(4)
+    im.drawRect(0, 0, 16, 16, 15)
+    // Draw brick mortar lines
+    for (let y = 3; y < 16; y += 4) im.drawLine(0, y, 15, y, 15)
+    for (let x = 3; x < 16; x += 8) {
+        im.drawLine(x, 0, x, 3, 15)
+        im.drawLine(x, 8, x, 11, 15)
+    }
+    for (let x = 7; x < 16; x += 8) {
+        im.drawLine(x, 4, x, 7, 15)
+        im.drawLine(x, 12, x, 15, 15)
+    }
+    return im
+}
+
+function makeStoneBlock(): Image {
+    let im = image.create(16, 16)
+    im.fill(12)  // Grey
+    im.drawRect(0, 0, 16, 16, 15)
+    // Chiseled bevel - highlight top/left, shadow bottom/right
+    im.drawLine(2, 2, 13, 2, 13)  // Top highlight
+    im.drawLine(2, 2, 2, 13, 13)  // Left highlight
+    im.drawLine(13, 3, 13, 13, 11)  // Right shadow
+    im.drawLine(3, 13, 13, 13, 11)  // Bottom shadow
+    // Inner stone face
+    im.fillRect(4, 4, 8, 8, 12)
+    im.drawLine(4, 4, 11, 4, 13)  // Inner highlight
+    im.drawLine(4, 4, 4, 11, 13)
+    im.drawLine(11, 5, 11, 11, 11)  // Inner shadow
+    im.drawLine(5, 11, 11, 11, 11)
+    // Center detail
+    im.setPixel(7, 7, 11)
+    im.setPixel(8, 8, 13)
+    return im
+}
+
+function makeTimber(): Image {
+    let im = image.create(16, 16)
+    im.fill(14)  // Light brown
+    im.drawRect(0, 0, 16, 16, 15)
+    // Stacked logs - horizontal dividers
+    im.drawLine(0, 5, 15, 5, 15)
+    im.drawLine(0, 10, 15, 10, 15)
+    // Log cross-sections on left face (3 logs)
+    im.drawCircle(3, 2, 2, 4)
+    im.setPixel(3, 2, 14)
+    im.drawCircle(3, 7, 2, 4)
+    im.setPixel(3, 7, 14)
+    im.drawCircle(3, 13, 2, 4)
+    im.setPixel(3, 13, 14)
+    // Wood grain lines
+    im.drawLine(7, 1, 14, 1, 4)
+    im.drawLine(7, 3, 14, 3, 4)
+    im.drawLine(7, 7, 14, 7, 4)
+    im.drawLine(7, 12, 14, 12, 4)
+    im.drawLine(7, 14, 14, 14, 4)
+    return im
+}
+
+function makeTallGrass(): Image {
+    let im = image.create(16, 16)
+    im.fill(7)  // Dark green base
+    im.drawRect(0, 0, 16, 16, 15)
+    // Ground soil at bottom
+    im.fillRect(1, 13, 14, 2, 4)
+    // Grass blades of varying height
+    im.drawLine(2, 13, 2, 6, 6)
+    im.drawLine(3, 13, 3, 8, 7)
+    im.drawLine(5, 13, 5, 4, 6)
+    im.drawLine(6, 13, 6, 7, 7)
+    im.drawLine(8, 13, 8, 5, 6)
+    im.drawLine(9, 13, 9, 9, 7)
+    im.drawLine(11, 13, 11, 3, 6)
+    im.drawLine(12, 13, 12, 7, 7)
+    im.drawLine(14, 13, 14, 6, 6)
+    // Bright tips
+    im.setPixel(5, 4, 10)
+    im.setPixel(11, 3, 10)
+    im.setPixel(2, 6, 10)
+    im.setPixel(8, 5, 10)
+    im.setPixel(14, 6, 10)
+    return im
+}
+
+function makeHay(): Image {
+    let im = image.create(16, 16)
+    im.fill(5)  // Yellow/straw base
+    im.drawRect(0, 0, 16, 16, 15)
+    // Binding ropes (darker brown)
+    im.drawLine(4, 1, 4, 14, 4)
+    im.drawLine(11, 1, 11, 14, 4)
+    // Straw texture - diagonal strands
+    im.drawLine(1, 2, 3, 4, 14)
+    im.drawLine(5, 1, 10, 6, 14)
+    im.drawLine(12, 2, 14, 4, 14)
+    im.drawLine(1, 8, 3, 10, 14)
+    im.drawLine(5, 7, 10, 12, 14)
+    im.drawLine(12, 8, 14, 10, 14)
+    // Straw ends poking out top/bottom
+    im.setPixel(2, 1, 13)
+    im.setPixel(7, 1, 13)
+    im.setPixel(13, 1, 13)
+    im.setPixel(3, 14, 13)
+    im.setPixel(8, 14, 13)
+    im.setPixel(14, 14, 13)
+    return im
+}
+
+function makeCaveEntrance(): Image {
+    let im = image.create(16, 16)
+    im.fill(12)  // Grey stone surround
+    im.drawRect(0, 0, 16, 16, 15)
+    // Stone highlights
+    im.drawLine(1, 1, 14, 1, 13)
+    im.drawLine(1, 1, 1, 14, 13)
+    im.drawLine(14, 2, 14, 14, 11)
+    im.drawLine(2, 14, 14, 14, 11)
+    // Dark cave opening - gothic arch
+    im.fillRect(4, 6, 8, 10, 15)
+    im.fillRect(5, 4, 6, 2, 15)
+    im.fillRect(6, 3, 4, 1, 15)
+    // Archway stone border
+    im.setPixel(4, 5, 11)
+    im.setPixel(11, 5, 11)
+    im.setPixel(5, 4, 11)
+    im.setPixel(10, 4, 11)
+    im.setPixel(6, 3, 11)
+    im.setPixel(9, 3, 11)
+    return im
+}
+
+function makeDungeonWall(): Image {
+    let im = image.create(16, 16)
+    im.fill(11) // Dark grey
+    im.drawRect(0, 0, 16, 16, 15)
+    im.drawLine(0, 8, 15, 8, 15)
+    im.drawLine(8, 0, 8, 8, 15)
+    im.drawLine(4, 8, 4, 15, 15)
+    im.drawLine(12, 8, 12, 15, 15)
+    return im
+}
+
+function makeKeyHole(): Image {
+    let im = makeDungeonWall()
+    im.fillRect(7, 6, 2, 3, 15)
+    im.fillRect(6, 9, 4, 3, 15)
+    return im
+}
+
+function makeDungeonFloor(): Image {
+    let im = image.create(16, 16)
+    im.fill(13)  // Light flagstone
+    im.drawRect(0, 0, 16, 16, 12)  // Mid-grey border
+    // Floor tile joints
+    im.drawLine(8, 0, 8, 15, 12)
+    im.drawLine(0, 8, 15, 8, 12)
+    // Highlight edges (top-left of each quad)
+    im.drawLine(1, 1, 7, 1, 1)
+    im.drawLine(9, 1, 14, 1, 1)
+    im.drawLine(1, 9, 7, 9, 1)
+    im.drawLine(9, 9, 14, 9, 1)
+    // Subtle cracks
+    im.setPixel(3, 4, 12)
+    im.setPixel(4, 5, 12)
+    im.setPixel(11, 12, 12)
+    return im
+}
+
+function makeKey(): Image {
+    let im = makeDungeonFloor()
+    // Classic golden RPG key
+    // Key bow (round top)
+    im.drawCircle(8, 4, 3, 5)
+    im.setPixel(8, 4, 14)  // Center of bow
+    im.setPixel(7, 4, 5)
+    im.setPixel(9, 4, 5)
+    // Key shaft
+    im.drawLine(8, 7, 8, 13, 5)
+    im.setPixel(8, 7, 14)  // Shaft highlight
+    // Key teeth
+    im.drawLine(8, 11, 10, 11, 5)
+    im.drawLine(10, 11, 10, 12, 5)
+    im.drawLine(8, 13, 11, 13, 5)
+    im.drawLine(11, 13, 11, 14, 5)
     return im
 }
 
 function makeWater(): Image {
     let im = image.create(16, 16)
-    im.fill(8)
-    for (let y = 0; y < 16; y++) {
-        for (let x = 0; x < 16; x++) {
-            if ((x * 2 + y * 3 + Math.floor(game.runtime() / 200)) % 7 == 0) im.setPixel(x, y, 9)
+    im.fill(8)  // Blue base
+    // Wave ripple bands
+    im.drawLine(0, 3, 15, 3, 9)
+    im.drawLine(0, 7, 15, 7, 6)
+    im.drawLine(0, 11, 15, 11, 9)
+    // Staggered wave crests
+    im.drawLine(2, 2, 5, 2, 9)
+    im.drawLine(10, 6, 14, 6, 9)
+    im.drawLine(1, 10, 6, 10, 9)
+    im.drawLine(11, 14, 15, 14, 9)
+    // Sparkle highlights
+    im.setPixel(4, 1, 1)
+    im.setPixel(12, 5, 1)
+    im.setPixel(3, 9, 1)
+    im.setPixel(13, 13, 1)
+    return im
+}
+
+/** Scales a 16x16 image down to 8x8 by sampling every 2nd pixel (nearest-neighbor). */
+function scaleDownHalf(source: Image): Image {
+    let out = image.create(8, 8)
+    for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+            out.setPixel(x, y, source.getPixel(x * 2, y * 2))
         }
     }
-    return im
+    return out
 }
 
 function initTiles() {
@@ -180,10 +516,55 @@ function initTiles() {
     leavesTile = makeLeaves()
     boneTile = makeBone()
     waterTile = makeWater()
+    ironOreTile = makeIronOre()
+    bricksTile = makeBricks()
+    stoneBlockTile = makeStoneBlock()
+    timberTile = makeTimber()
+    tallGrassTile = makeTallGrass()
+    hayTile = makeHay()
+    caveEntranceTile = makeCaveEntrance()
+    dungeonWallTile = makeDungeonWall()
+    keyHoleTile = makeKeyHole()
+    dungeonFloorTile = makeDungeonFloor()
+    keyTile = makeKey()
+
     tileImages = [
         grassTile, dirtTile, stoneTile, bedrockTile,
-        dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile, waterTile
+        dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile, waterTile,
+        ironOreTile, bricksTile, stoneBlockTile, timberTile, tallGrassTile, hayTile,
+        caveEntranceTile, dungeonWallTile, keyHoleTile, dungeonFloorTile, keyTile
     ]
+
+    // Generate scaled-down 8x8 mini icons from actual tile images
+    miniDirtWall = scaleDownHalf(dirtWallTile)
+    miniSpikes = scaleDownHalf(spikesTile)
+    miniWoodTile = scaleDownHalf(woodTile)
+    miniLeavesTile = scaleDownHalf(leavesTile)
+    miniBoneTile = scaleDownHalf(boneTile)
+    miniBricks = scaleDownHalf(bricksTile)
+    miniStoneBlock = scaleDownHalf(stoneBlockTile)
+    miniTimber = scaleDownHalf(timberTile)
+    miniHay = scaleDownHalf(hayTile)
+    
+    // Skeleton mini icon for inventory – small skull face
+    miniSkeleton = image.create(8, 8)
+    miniSkeleton.fill(0)  // Transparent
+    miniSkeleton.fillRect(1, 0, 6, 5, 1)  // Skull shape
+    miniSkeleton.setPixel(0, 1, 1)
+    miniSkeleton.setPixel(0, 2, 1)
+    miniSkeleton.setPixel(7, 1, 1)
+    miniSkeleton.setPixel(7, 2, 1)
+    miniSkeleton.setPixel(2, 2, 15)  // Left eye
+    miniSkeleton.setPixel(5, 2, 15)  // Right eye
+    miniSkeleton.setPixel(3, 4, 15)  // Teeth
+    miniSkeleton.setPixel(4, 4, 15)
+    // Crossbones below
+    miniSkeleton.setPixel(1, 6, 1)
+    miniSkeleton.setPixel(2, 7, 1)
+    miniSkeleton.setPixel(5, 7, 1)
+    miniSkeleton.setPixel(6, 6, 1)
+    miniSkeleton.setPixel(3, 6, 1)
+    miniSkeleton.setPixel(4, 6, 1)
 }
 
 
@@ -213,7 +594,9 @@ function getTileId(col: number, row: number): number {
 }
 
 function isSolid(tileId: number): boolean {
-    return tileId == DIRT || tileId == STONE || tileId == BEDROCK || tileId == DIRT_WALL || tileId == WOOD || tileId == WATER
+    return tileId == DIRT || tileId == STONE || tileId == BEDROCK || tileId == DIRT_WALL || tileId == WOOD || tileId == WATER || 
+           tileId == IRON_ORE || tileId == BRICKS || tileId == STONE_BLOCK || tileId == TIMBER || 
+           tileId == DUNGEON_WALL || tileId == KEY_HOLE
 }
 
 function rawSetTile(col: number, row: number, tileId: number) {
@@ -248,10 +631,11 @@ function clearArea(cx: number, cy: number, radius: number) {
 
 function makeTree(cx: number, cy: number) {
     rawSetTile(cx, cy, WOOD)
-    if (inBounds(cx - 1, cy) && randint(0, 100) < 70) rawSetTile(cx - 1, cy, LEAVES)
-    if (inBounds(cx + 1, cy) && randint(0, 100) < 70) rawSetTile(cx + 1, cy, LEAVES)
-    if (inBounds(cx, cy - 1) && randint(0, 100) < 70) rawSetTile(cx, cy - 1, LEAVES)
-    if (inBounds(cx, cy + 1) && randint(0, 100) < 70) rawSetTile(cx, cy + 1, LEAVES)
+    // TALL_GRASS replaces leaves in world gen as the source of hay
+    if (inBounds(cx - 1, cy) && randint(0, 100) < 70) rawSetTile(cx - 1, cy, TALL_GRASS)
+    if (inBounds(cx + 1, cy) && randint(0, 100) < 70) rawSetTile(cx + 1, cy, TALL_GRASS)
+    if (inBounds(cx, cy - 1) && randint(0, 100) < 70) rawSetTile(cx, cy - 1, TALL_GRASS)
+    if (inBounds(cx, cy + 1) && randint(0, 100) < 70) rawSetTile(cx, cy + 1, TALL_GRASS)
 }
 
 function generateWorld() {
@@ -280,12 +664,14 @@ function generateWorld() {
         if (Math.abs(tx - 24) > 5 || Math.abs(ty - 10) > 5) makeTree(tx, ty)
     }
 
-    // 4. Scatter basic resources (Dirt/Stone) in the lower section of the map
+    // 4. Scatter basic resources (Dirt/Stone/Iron Ore) in the lower section of the map
     for (let i2 = 0; i2 < 170 + level * 6; i2++) {
         let bx = randint(4, MAP_W - 5)
         let by = randint(18, MAP_H - 6)
-        if (randint(0, 100) < 65) rawSetTile(bx, by, DIRT)
-        else rawSetTile(bx, by, STONE)
+        let rand = randint(0, 100)
+        if (rand < 55) rawSetTile(bx, by, DIRT)
+        else if (rand < 85) rawSetTile(bx, by, STONE)
+        else rawSetTile(bx, by, IRON_ORE)
     }
 
     // 5. Scatter bone fragments for skeleton summoning
@@ -299,7 +685,10 @@ function generateWorld() {
     for (let cluster = 0; cluster < 18; cluster++) {
         let cx = randint(6, MAP_W - 7)
         let cy = randint(20, MAP_H - 8)
-        let kind = randint(0, 100) < 55 ? DIRT : STONE
+        let rand = randint(0, 100)
+        let kind = DIRT
+        if (rand > 80) kind = IRON_ORE
+        else if (rand > 50) kind = STONE
 
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
@@ -339,18 +728,35 @@ function generateWorld() {
     goalRow = 44
     rawSetTile(goalCol, goalRow, DIAMOND)
 
-    // Build a decorative stone enclosure around the Diamond entrance
-    for (let gx = routeX - 4; gx <= routeX + 4; gx++) {
-        if (inBounds(gx, 40)) rawSetTile(gx, 40, STONE)
-    }
+    // Build a decorative stone enclosure around the Diamond entrance (only if obstacles are enabled)
+    if (activeObstacle != OBSTACLE_NONE) {
+        for (let gx = routeX - 4; gx <= routeX + 4; gx++) {
+            if (inBounds(gx, 40)) rawSetTile(gx, 40, STONE)
+        }
 
-    // Leave a 3-tile wide entrance hole in the enclosure
-    rawSetTile(routeX, 40, GRASS)
-    rawSetTile(routeX - 1, 40, GRASS)
-    rawSetTile(routeX + 1, 40, GRASS)
+        // Leave a 3-tile wide entrance hole in the enclosure
+        rawSetTile(routeX, 40, GRASS)
+        rawSetTile(routeX - 1, 40, GRASS)
+        rawSetTile(routeX + 1, 40, GRASS)
+    }
     
     // Final spawn clearing to ensure player doesn't spawn in a tree
     clearArea(24, 10, 5)
+
+    if (activeObstacle == OBSTACLE_DUNGEON) {
+        // Clear the stone enclosure and replace with an impassable dungeon wall
+        for (let gx = routeX - 4; gx <= routeX + 4; gx++) {
+            if (inBounds(gx, 40)) rawSetTile(gx, 40, GRASS)
+        }
+        for (let dwx = routeX - 2; dwx <= routeX + 2; dwx++) {
+            for (let dwy = 42; dwy <= 46; dwy++) {
+                if (dwx == routeX && dwy == 44) continue // Keep diamond
+                if (inBounds(dwx, dwy)) rawSetTile(dwx, dwy, DUNGEON_WALL)
+            }
+        }
+        // Place cave entrance
+        rawSetTile(routeX, 41, CAVE_ENTRANCE)
+    }
 
     // 9. Apply dynamic obstacles (if selected)
     if (activeObstacle == OBSTACLE_RIVER) {
@@ -368,9 +774,8 @@ function generateRiver() {
         if (randint(0, 100) < 30) rawSetTile(rx, ry - 1, WATER)
         
         ry += randint(-1, 1)
-        if (ry < 18) ry = 18
-        if (ry > 32) ry = 32
+        if (ry < 15) ry = 15
+        if (ry > 35) ry = 35
     }
 }
-
 

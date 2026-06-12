@@ -126,6 +126,75 @@ function stopLevelMusic() {
     music.stopAllSounds()
 }
 
+// --------------------------------------------------------------------------
+// Dungeon music – dark, mysterious RPG-style theme
+// Uses Phrygian / minor tonality with slower tempo for tension.
+// --------------------------------------------------------------------------
+const DUNGEON_TEMPO = 100
+
+function generateDungeonTune(seed: number): string[] {
+    // D Phrygian / D minor scale – dark and mysterious
+    let scale = ["D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4"]
+    let home = "D3"
+
+    // Phrase A: Brooding descent
+    let phraseA = [
+        "D4", "C4", "A3", "G3",
+        "F3", "E3", "D3", "E3"
+    ]
+
+    // Phrase B: Tense climb with mutation from seed
+    let phraseB = [
+        "F3", "G3", scale[boundedIndex(seed + 2, scale.length)], "A3",
+        scale[boundedIndex(seed + 4, scale.length)], "G3", "F3", "E3"
+    ]
+
+    // Phrase C: Ominous bass drone
+    let phraseC = [
+        "D3", "D3", "E3", "D3",
+        "F3", "E3", "D3", scale[boundedIndex(seed + 1, scale.length)]
+    ]
+
+    // Phrase D: Resolution / cadence – unresolved, keeps tension
+    let phraseD = [
+        "A3", "G3", "F3", scale[boundedIndex(seed + 3, scale.length)],
+        "E3", "F3", "E3", "D3"
+    ]
+
+    let tune: string[] = []
+    appendMotif(tune, phraseA)
+    appendMotif(tune, phraseB)
+    appendMotif(tune, phraseC)
+    appendMotif(tune, phraseD)
+    return tune
+}
+
+function playDungeonTune(tune: string[], token: number) {
+    if (musicToken != token) return
+    playTunePart(tune, 0, DUNGEON_TEMPO)
+    if (musicToken != token) return
+    playTunePart(tune, 8, DUNGEON_TEMPO)
+    if (musicToken != token) return
+    playTunePart(tune, 16, DUNGEON_TEMPO)
+    if (musicToken != token) return
+    playTunePart(tune, 24, DUNGEON_TEMPO)
+}
+
+function playDungeonMusic() {
+    if (demoMode) return
+
+    musicToken += 1
+    let myToken = musicToken
+    let tune = generateDungeonTune(level)
+
+    control.runInParallel(function () {
+        while (gameState == PLAYING && inDungeon && myToken == musicToken) {
+            playDungeonTune(tune, myToken)
+            pause(10)
+        }
+    })
+}
+
 /**
  * RPG-style damage sound using raw frequencies.
  */

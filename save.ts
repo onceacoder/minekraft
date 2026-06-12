@@ -36,7 +36,7 @@ function saveGame(svName: string) {
         let packed = 0;
         for (let j = 0; j < 6; j++) {
             let id = world.getNumber(NumberFormat.UInt8LE, 4 + i + j);
-            packed |= (id << (j * 4));
+            packed |= (id << (j * 5));
         }
         mapArr.push(packed);
     }
@@ -52,8 +52,12 @@ function saveGame(svName: string) {
     }
 
     let data = [
-        level, info.life(), invDirt, invStone, invWood, invLeaves, invBones,
+        level, info.life(), invDirt, invStone, invWood, invGrass, invBones,
         player.x, player.y, theme, goalCol, goalRow,
+        invIron,
+        optRiver ? 1 : 0, optSurvive ? 1 : 0, optToll ? 1 : 0, optDungeon ? 1 : 0,
+        activeObstacle,
+        inDungeon ? 1 : 0, hasDungeonKey ? 1 : 0, dungeonReturnCol, dungeonReturnRow,
         zData.length / 3
     ]
     for (let i = 0; i < zData.length; i++) data.push(zData[i])
@@ -75,7 +79,7 @@ function loadGame(svName: string): boolean {
     let data = settings.readNumberArray("sav_" + svName + "_data")
     let mapArr = settings.readNumberArray("sav_" + svName + "_map")
 
-    if (!data || data.length < 12 || !mapArr || mapArr.length != 384) {
+    if (!data || data.length < 12 || !mapArr || mapArr.length != (MAP_W * MAP_H) / 6) {
         return false
     }
 
@@ -87,21 +91,60 @@ function loadGame(svName: string): boolean {
     invDirt = data[2]
     invStone = data[3]
     invWood = data[4]
-    invLeaves = data[5]
-    let offset = data.length >= 13 ? 1 : 0
-    invBones = offset ? data[6] : 0
-    let px = data[6 + offset]
-    let py = data[7 + offset]
-    theme = data[8 + offset]
-    goalCol = data[9 + offset]
-    goalRow = data[10 + offset]
-    let zCount = data[11 + offset]
+    invGrass = data[5]
+    
+    let px = 24 * TILE
+    let py = 10 * TILE
+    let zCount = 0
+    let zOffset = 0
+    
+    if (data.length >= 23) {
+        // v3 format (includes invIron and all dungeon/obstacle states)
+        invBones = data[6]
+        px = data[7]
+        py = data[8]
+        theme = data[9]
+        goalCol = data[10]
+        goalRow = data[11]
+        invIron = data[12]
+        optRiver = data[13] == 1
+        optSurvive = data[14] == 1
+        optToll = data[15] == 1
+        optDungeon = data[16] == 1
+        activeObstacle = data[17]
+        inDungeon = data[18] == 1
+        hasDungeonKey = data[19] == 1
+        dungeonReturnCol = data[20]
+        dungeonReturnRow = data[21]
+        zCount = data[22]
+        zOffset = 23
+    } else {
+        // Legacy v1 / v2 formats
+        let offset = data.length >= 13 ? 1 : 0
+        invBones = offset ? data[6] : 0
+        px = data[6 + offset]
+        py = data[7 + offset]
+        theme = data[8 + offset]
+        goalCol = data[9 + offset]
+        goalRow = data[10 + offset]
+        zCount = data[11 + offset]
+        zOffset = 12 + offset
+        
+        invIron = 0
+        optRiver = true
+        optSurvive = true
+        optToll = true
+        optDungeon = true
+        activeObstacle = OBSTACLE_NONE
+        inDungeon = false
+        hasDungeonKey = false
+    }
 
     // Unpack binary map
     for (let i = 0; i < mapArr.length; i++) {
         let packed = mapArr[i];
         for (let j = 0; j < 6; j++) {
-            let id = (packed >> (j * 4)) & 0xF;
+            let id = (packed >> (j * 5)) & 0x1F;
             world.setNumber(NumberFormat.UInt8LE, 4 + i * 6 + j, id);
         }
     }
@@ -131,9 +174,9 @@ function loadGame(svName: string): boolean {
     createDiamondMarker()
 
     for (let i = 0; i < zCount; i++) {
-        let zx = data[12 + i * 3]
-        let zy = data[13 + i * 3]
-        let zm = data[14 + i * 3]
+        let zx = data[zOffset + i * 3]
+        let zy = data[zOffset + 1 + i * 3]
+        let zm = data[zOffset + 2 + i * 3]
 
         let zombie = sprites.create(zIdle, SpriteKind.Enemy)
         zombie.z = 5
@@ -158,4 +201,84 @@ function loadGame(svName: string): boolean {
 function getSaveList(): string[] {
     let q = settings.readString("saveQueue") || ""
     return q.length > 0 ? q.split(",") : []
+}
+
+let overworldSavedInvDirt = 0
+let overworldSavedInvStone = 0
+let overworldSavedInvWood = 0
+let overworldSavedInvGrass = 0
+let overworldSavedInvBones = 0
+let overworldSavedInvIron = 0
+
+function suspendOverworld() {
+    let mapArr: number[] = []
+    for (let i = 0; i < MAP_W * MAP_H; i += 6) {
+        let packed = 0;
+        for (let j = 0; j < 6; j++) {
+            let id = world.getNumber(NumberFormat.UInt8LE, 4 + i + j);
+            packed |= (id << (j * 5));
+        }
+        mapArr.push(packed);
+    }
+    settings.writeNumberArray("dungeon_suspend_map", mapArr)
+
+    let zData: number[] = []
+    for (let z of zombieRefs) {
+        let idx = zombieIndex(z)
+        let mode = idx >= 0 ? zombieModes[idx] : 0
+        zData.push(z.x)
+        zData.push(z.y)
+        zData.push(mode)
+    }
+    settings.writeNumberArray("dungeon_suspend_zombies", zData)
+
+    overworldSavedInvDirt = invDirt
+    overworldSavedInvStone = invStone
+    overworldSavedInvWood = invWood
+    overworldSavedInvGrass = invGrass
+    overworldSavedInvBones = invBones
+    overworldSavedInvIron = invIron
+
+    invDirt = 0
+    invStone = 0
+    invWood = 0
+    invGrass = 0
+    invBones = 0
+    invIron = 0
+}
+
+function restoreOverworld() {
+    let mapArr = settings.readNumberArray("dungeon_suspend_map")
+    let zData = settings.readNumberArray("dungeon_suspend_zombies")
+
+    if (mapArr && mapArr.length == (MAP_W * MAP_H) / 6) {
+        for (let i = 0; i < mapArr.length; i++) {
+            let packed = mapArr[i];
+            for (let j = 0; j < 6; j++) {
+                let id = (packed >> (j * 5)) & 0x1F;
+                world.setNumber(NumberFormat.UInt8LE, 4 + i * 6 + j, id);
+            }
+        }
+    }
+
+    if (zData) {
+        for (let i = 0; i < zData.length / 3; i++) {
+            let zx = zData[i * 3]
+            let zy = zData[1 + i * 3]
+            let zm = zData[2 + i * 3]
+
+            let zombie = sprites.create(zIdle, SpriteKind.Enemy)
+            zombie.z = 5
+            zombie.setPosition(zx, zy)
+            rememberZombie(zombie)
+            setZombieMode(zombie, zm)
+        }
+    }
+
+    invDirt = overworldSavedInvDirt
+    invStone = overworldSavedInvStone
+    invWood = overworldSavedInvWood
+    invGrass = overworldSavedInvGrass
+    invBones = overworldSavedInvBones
+    invIron = overworldSavedInvIron
 }

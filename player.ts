@@ -236,22 +236,26 @@ function updateTargetCursor() {
 
 // --------------------------------------------------------------------------
 function isHarvestable(id: number): boolean {
-    return id == DIRT || id == STONE || id == DIRT_WALL || id == SPIKES || id == WOOD || id == LEAVES || id == BONE
+    return id == DIRT || id == BRICKS || id == STONE || id == STONE_BLOCK || 
+           id == IRON_ORE || id == SPIKES || id == WOOD || id == TIMBER || 
+           id == TALL_GRASS || id == HAY || id == BONE
 }
 
 function matCount(): number {
     if (selectedMat == MAT_DIRT) return invDirt
     else if (selectedMat == MAT_STONE) return invStone
+    else if (selectedMat == MAT_IRON) return invIron
     else if (selectedMat == MAT_WOOD) return invWood
-    else if (selectedMat == MAT_LEAVES) return invLeaves
+    else if (selectedMat == MAT_GRASS) return invGrass
     else return invBones
 }
 
 function selectedTile(): number {
-    if (selectedMat == MAT_DIRT) return DIRT_WALL
-    else if (selectedMat == MAT_STONE) return SPIKES
-    else if (selectedMat == MAT_WOOD) return WOOD
-    else if (selectedMat == MAT_LEAVES) return LEAVES
+    if (selectedMat == MAT_DIRT) return BRICKS
+    else if (selectedMat == MAT_STONE) return STONE_BLOCK
+    else if (selectedMat == MAT_IRON) return SPIKES
+    else if (selectedMat == MAT_WOOD) return TIMBER
+    else if (selectedMat == MAT_GRASS) return HAY
     else return BONE
 }
 
@@ -263,19 +267,28 @@ function breakEffect(col: number, row: number) {
 }
 
 function buildBlock(col: number, row: number, dirX: number, dirY: number) {
+    // Track if we are building over water so we can restore it on destruction
+    if (getTileId(col, row) == WATER) {
+        waterBridgeCols.push(col)
+        waterBridgeRows.push(row)
+    }
+
     // Determine which inventory to debit based on the currently selected material
     if (selectedMat == MAT_DIRT) {
         invDirt += -1
-        setTile(col, row, DIRT_WALL)
+        setTile(col, row, BRICKS)
     } else if (selectedMat == MAT_STONE) {
         invStone += -1
+        setTile(col, row, STONE_BLOCK)
+    } else if (selectedMat == MAT_IRON) {
+        invIron += -1
         setTile(col, row, SPIKES)
     } else if (selectedMat == MAT_WOOD) {
         invWood += -1
-        setTile(col, row, WOOD)
-    } else if (selectedMat == MAT_LEAVES) {
-        invLeaves += -1
-        setTile(col, row, LEAVES)
+        setTile(col, row, TIMBER)
+    } else if (selectedMat == MAT_GRASS) {
+        invGrass += -1
+        setTile(col, row, HAY)
     } else if (selectedMat == MAT_BONE) {
         invBones += -1
         spawnSkeleton(col, row)
@@ -283,6 +296,25 @@ function buildBlock(col: number, row: number, dirX: number, dirY: number) {
 
     playPlayerAttack(dirX, dirY)
     music.playTone(175, 50)
+}
+
+/** Returns true if (col, row) was a water tile before a block was placed on it. */
+function wasWaterBridge(col: number, row: number): boolean {
+    for (let i = 0; i < waterBridgeCols.length; i++) {
+        if (waterBridgeCols[i] == col && waterBridgeRows[i] == row) return true
+    }
+    return false
+}
+
+/** Remove a position from the water bridge list after the tile is restored. */
+function forgetWaterBridge(col: number, row: number) {
+    for (let i = 0; i < waterBridgeCols.length; i++) {
+        if (waterBridgeCols[i] == col && waterBridgeRows[i] == row) {
+            waterBridgeCols.splice(i, 1)
+            waterBridgeRows.splice(i, 1)
+            return
+        }
+    }
 }
 
 /** * Instant action executor. Tries to harvest the exact tile faced first.
@@ -295,23 +327,77 @@ function performTargetAction() {
     let frontRow = playerRow() + facingDy
     let frontId = getTileId(frontCol, frontRow)
 
-    if (isHarvestable(frontId)) {
-        if (frontId == DIRT || frontId == DIRT_WALL) invDirt += 1
-        else if (frontId == STONE || frontId == SPIKES) invStone += 1
-        else if (frontId == WOOD) invWood += 1
-        else if (frontId == LEAVES) invLeaves += 1
-        else if (frontId == BONE) invBones += 1
+    let hitEnemy = false
+    if (inDungeon) {
+        // Zelda Combat: check for enemies in the target tile or immediately adjacent
+        for (let z of zombieRefs) {
+            let zc = Math.floor(z.x / TILE)
+            let zr = Math.floor(z.y / TILE)
+            if (Math.abs(zc - frontCol) <= 1 && Math.abs(zr - frontRow) <= 1) {
+                forgetZombie(z)
+                z.destroy(effects.disintegrate, 150)
+                hitEnemy = true
+            }
+        }
+        if (hitEnemy) {
+            playPlayerAttack(facingDx, facingDy)
+            music.playTone(262, 50)
+            return
+        }
+    }
 
-        setTile(frontCol, frontRow, GRASS)
+    if (frontId == KEY_HOLE) {
+        if (hasDungeonKey) {
+            setTile(frontCol, frontRow, GRASS)
+            // Remove the 5x5 dungeon wall around the diamond
+            for (let dwx = goalCol - 2; dwx <= goalCol + 2; dwx++) {
+                for (let dwy = 42; dwy <= 46; dwy++) {
+                    if (getTileId(dwx, dwy) == DUNGEON_WALL) {
+                        setTile(dwx, dwy, GRASS)
+                    }
+                }
+            }
+            music.playTone(523, 500)
+            showBanner("DUNGEON UNLOCKED")
+        } else {
+            music.playTone(131, 40)
+            showBanner("NEEDS KEY")
+        }
+        return
+    }
+
+    if (isHarvestable(frontId)) {
+        if (frontId == DIRT) invDirt += 1
+        else if (frontId == STONE) invStone += 1
+        else if (frontId == IRON_ORE) invIron += 1
+        else if (frontId == WOOD) invWood += 1
+        else if (frontId == TALL_GRASS) invGrass += 1
+        else if (frontId == BONE) invBones += 1
+        else if (frontId == BRICKS || frontId == STONE_BLOCK || frontId == TIMBER || frontId == HAY || frontId == SPIKES) {
+            let effectSprite = sprites.create(blank16, SpriteKind.Food)
+            effectSprite.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
+            effectSprite.z = 20
+            effectSprite.lifespan = 200
+            effectSprite.startEffect(effects.disintegrate, 200)
+        }
+
+        // Restore water if this block was built over a river tile
+        let restoreTile = inDungeon ? DUNGEON_FLOOR : GRASS
+        if (wasWaterBridge(frontCol, frontRow)) {
+            restoreTile = WATER
+            forgetWaterBridge(frontCol, frontRow)
+        }
+        setTile(frontCol, frontRow, restoreTile)
         playPlayerAttack(facingDx, facingDy)
         music.playTone(262, 50)
+        harvestCount++ // Harvest gate progress
         return
     }
 
     // If we have resources selected, attempt to build
     if (matCount() > 0 && selectedMat != MAT_SAVE) {
         // Try exactly the space right in front of the player
-        if (frontId == GRASS || frontId == WATER) {
+        if (frontId == GRASS || frontId == WATER || frontId == DUNGEON_FLOOR) {
             buildBlock(frontCol, frontRow, facingDx, facingDy)
             return
         }
@@ -323,12 +409,18 @@ function performTargetAction() {
                 let c = playerCol() + dx
                 let r = playerRow() + dy
 
-                if (getTileId(c, r) == GRASS || getTileId(c, r) == WATER) {
+                let cid = getTileId(c, r)
+                if (cid == GRASS || cid == WATER || cid == DUNGEON_FLOOR) {
                     buildBlock(c, r, dx, dy)
                     return
                 }
             }
         }
+    }
+
+    // If we are in the dungeon and hit nothing, just play the attack animation
+    if (inDungeon) {
+        playPlayerAttack(facingDx, facingDy)
     }
 
     // No valid action found — play a short error tone as feedback
@@ -347,6 +439,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == OPTIONS) {
+        if (isEditingOption) return
         optionChoice += -1
         if (optionChoice < 0) optionChoice = 4
         return
@@ -360,7 +453,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == OBSTACLES) {
         obstacleChoicePos += -1
-        if (obstacleChoicePos < 0) obstacleChoicePos = 2
+        if (obstacleChoicePos < 0) obstacleChoicePos = 3
         return
     }
 
@@ -394,6 +487,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == OPTIONS) {
+        if (isEditingOption) return
         optionChoice += 1
         if (optionChoice > 4) optionChoice = 0
         return
@@ -407,7 +501,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == OBSTACLES) {
         obstacleChoicePos += 1
-        if (obstacleChoicePos > 2) obstacleChoicePos = 0
+        if (obstacleChoicePos > 3) obstacleChoicePos = 0
         return
     }
 
@@ -435,6 +529,18 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (gameState == OPTIONS) {
+        if (!isEditingOption) return
+        if (optionChoice == 0) {
+            if (selectedLevels == INFINITY) selectedLevels = 10
+            else if (selectedLevels > 1) selectedLevels--
+        } else if (optionChoice == 1) {
+            if (selectedHealth == INFINITY) selectedHealth = 7
+            else if (selectedHealth > 1) selectedHealth--
+        }
+        return
+    }
+
     if (gameState == DIFFICULTY) {
         if (difficultyChoice == 0) {
             if (diffZombieSpeedLevel > 1) diffZombieSpeedLevel--
@@ -451,6 +557,24 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (gameState == OPTIONS) {
+        if (!isEditingOption) return
+        if (optionChoice == 0) {
+            if (selectedLevels == INFINITY) selectedLevels = 1
+            else {
+                selectedLevels++
+                if (selectedLevels > 10) selectedLevels = INFINITY
+            }
+        } else if (optionChoice == 1) {
+            if (selectedHealth == INFINITY) selectedHealth = 1
+            else {
+                selectedHealth++
+                if (selectedHealth > 7) selectedHealth = INFINITY
+            }
+        }
+        return
+    }
+
     if (gameState == DIFFICULTY) {
         if (difficultyChoice == 0) {
             if (diffZombieSpeedLevel < 5) diffZombieSpeedLevel++
@@ -485,20 +609,8 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == OPTIONS) {
-        if (optionChoice == 0) {
-            if (selectedLevels == INFINITY) {
-                selectedLevels = 1
-            } else {
-                selectedLevels += 1
-                if (selectedLevels > 10) selectedLevels = INFINITY
-            }
-        } else if (optionChoice == 1) {
-            if (selectedHealth == INFINITY) {
-                selectedHealth = 1
-            } else {
-                selectedHealth += 1
-                if (selectedHealth > 7) selectedHealth = INFINITY
-            }
+        if (optionChoice == 0 || optionChoice == 1) {
+            isEditingOption = !isEditingOption
         } else if (optionChoice == 2) {
             demoMode = !demoMode
             if (demoMode) {
@@ -534,6 +646,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         if (obstacleChoicePos == 0) optRiver = !optRiver
         else if (obstacleChoicePos == 1) optSurvive = !optSurvive
         else if (obstacleChoicePos == 2) optToll = !optToll
+        else if (obstacleChoicePos == 3) optDungeon = !optDungeon
         return
     }
 
@@ -542,15 +655,17 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         if (tollMat == MAT_DIRT) current = invDirt
         else if (tollMat == MAT_STONE) current = invStone
         else if (tollMat == MAT_WOOD) current = invWood
-        else if (tollMat == MAT_LEAVES) current = invLeaves
+        else if (tollMat == MAT_GRASS) current = invGrass
         else if (tollMat == MAT_BONE) current = invBones
+        else if (tollMat == MAT_IRON) current = invIron
 
         if (current >= tollAmount) {
             if (tollMat == MAT_DIRT) invDirt -= tollAmount
             else if (tollMat == MAT_STONE) invStone -= tollAmount
             else if (tollMat == MAT_WOOD) invWood -= tollAmount
-            else if (tollMat == MAT_LEAVES) invLeaves -= tollAmount
+            else if (tollMat == MAT_GRASS) invGrass -= tollAmount
             else if (tollMat == MAT_BONE) invBones -= tollAmount
+            else if (tollMat == MAT_IRON) invIron -= tollAmount
 
             gameState = PLAYING
             finishLevel()
@@ -585,12 +700,13 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState != PLAYING) return
 
     if (inventoryOpen) {
-        if (selectedMat == MAT_SAVE) {
+        if (inventoryCursor == MAT_SAVE) {
             gameState = SAVING
             saveNameIndices = [0, 0, 0]
             saveNamePos = 0
             return
         }
+        selectedMat = inventoryCursor
         inventoryOpen = false
         resumeEnemies()
         resumePlayer()
@@ -646,6 +762,10 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == OPTIONS) {
+        if (isEditingOption) {
+            isEditingOption = false
+            return
+        }
         gameState = TITLE
         return
     }
@@ -654,6 +774,7 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (!inventoryOpen) {
         inventoryOpen = true
+        inventoryCursor = selectedMat
         menuScrollY = 0
         stopPlayer()
         stopEnemies()
@@ -686,6 +807,32 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite: Sprite,
 
     if (selectedHealth != INFINITY) {
         info.changeLifeBy(-1)
+    }
+
+    // Scatter resources on hit — drops random inventory items as tiles near the player
+    let scatterCount = randint(1, 3)
+    for (let sc = 0; sc < scatterCount; sc++) {
+        // Pick a random non-empty material to drop
+        let dropMat = -1
+        let scAttempts = 0
+        while (scAttempts < 10) {
+            let pick = randint(0, 5)
+            if (pick == 0 && invDirt > 0) { invDirt--; dropMat = DIRT; break }
+            if (pick == 1 && invStone > 0) { invStone--; dropMat = STONE; break }
+            if (pick == 2 && invWood > 0) { invWood--; dropMat = WOOD; break }
+            if (pick == 3 && invGrass > 0) { invGrass--; dropMat = TALL_GRASS; break }
+            if (pick == 4 && invBones > 0) { invBones--; dropMat = BONE; break }
+            if (pick == 5 && invIron > 0) { invIron--; dropMat = IRON_ORE; break }
+            scAttempts++
+        }
+        if (dropMat >= 0) {
+            // Find a nearby grass tile to drop onto
+            let dc = playerCol() + randint(-2, 2)
+            let dr = playerRow() + randint(-2, 2)
+            if (inBounds(dc, dr) && getTileId(dc, dr) == GRASS) {
+                setTile(dc, dr, dropMat)
+            }
+        }
     }
 
     let pushX = getSign(sprite.x - otherSprite.x)

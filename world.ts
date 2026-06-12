@@ -493,7 +493,7 @@ function makeWater(): Image {
     return im
 }
 
-function makeCampfire(): Image {
+function makeCampfire(frame: number): Image {
     let im = image.create(16, 16)
     im.fill(14) // Dark base for ash/wood
     im.drawRect(0, 0, 16, 16, 15) // Border
@@ -505,10 +505,22 @@ function makeCampfire(): Image {
     // Fire core (orange)
     im.fillRect(6, 7, 4, 4, 4)
     // Fire tips (yellow)
-    im.drawLine(7, 4, 7, 6, 5)
-    im.drawLine(8, 5, 8, 8, 5)
-    im.setPixel(6, 6, 5)
-    im.setPixel(9, 7, 5)
+    if (frame == 0) {
+        im.drawLine(7, 4, 7, 6, 5)
+        im.drawLine(8, 5, 8, 8, 5)
+        im.setPixel(6, 6, 5)
+        im.setPixel(9, 7, 5)
+    } else if (frame == 1) {
+        im.drawLine(8, 4, 8, 6, 5)
+        im.drawLine(7, 5, 7, 8, 5)
+        im.setPixel(9, 6, 5)
+        im.setPixel(6, 7, 5)
+    } else {
+        im.drawLine(7, 5, 7, 7, 5)
+        im.drawLine(8, 6, 8, 8, 5)
+        im.setPixel(6, 5, 5)
+        im.setPixel(9, 6, 5)
+    }
     return im
 }
 
@@ -546,7 +558,12 @@ function initTiles() {
     keyHoleTile = makeKeyHole()
     dungeonFloorTile = makeDungeonFloor()
     keyTile = makeKey()
-    campfireTile = makeCampfire()
+    
+    campfireFrames = []
+    campfireFrames.push(makeCampfire(0))
+    campfireFrames.push(makeCampfire(1))
+    campfireFrames.push(makeCampfire(2))
+    campfireTile = campfireFrames[0]
 
     tileImages = [
         grassTile, dirtTile, stoneTile, bedrockTile,

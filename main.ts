@@ -121,22 +121,14 @@ game.onUpdate(function () {
         return
     }
 
-    if (isDemoActive()) {
-        updateDemoMode()
-    } else {
-        updateFacing()
-        autoAlignPlayer()
-        if (inDungeon) updateDungeonCamera()
-    }
+    updateFacing()
+    autoAlignPlayer()
+    if (inDungeon) updateDungeonCamera()
 
     // Update the visual representation of the player's facing direction and animation state
     updatePlayerAnim()
 
-    if (!demoMode) {
-        updateTargetCursor()
-    } else {
-        if (targetCursor != null) targetCursor.setFlag(SpriteFlag.Invisible, true)
-    }
+    updateTargetCursor()
 
     // Check if enemies walked onto Spike traps (throttled to every 4 frames)
     spikeCheckCounter++
@@ -207,9 +199,7 @@ game.onUpdate(function () {
         currentRoomY = Math.floor(player.y / 128)
         scene.cameraFollowSprite(null)
         scene.centerCameraAt(currentRoomX * 160 + 80, currentRoomY * 128 + 64)
-        stopLevelMusic()
         music.playTone(131, 300)
-        playDungeonMusic()
         showBanner("DUNGEON")
     } else if (pTile == KEY) {
         // Key pickup
@@ -231,8 +221,6 @@ game.onUpdate(function () {
         player.x = dungeonReturnCol * TILE + 8
         player.y = (dungeonReturnRow - 1) * TILE + 8
         music.playTone(523, 300)
-        stopLevelMusic()
-        playLevelMusic()
         showBanner("KEY FOUND")
     }
 })
@@ -249,13 +237,13 @@ scene.createRenderable(100, function (target: Image, camera: scene.Camera) {
     else if (gameState == OBSTACLES) drawObstaclesMenu(target)
     else if (gameState == INTRO) drawIntro(target)
     else if (gameState == PLAYING) {
+        drawCampfires(target)
         drawGoalPointer(target)
         drawNightOverlay(target)
         drawResourceHud(target)
         drawHarvestGate(target)
         drawFreezeMeter(target)
         drawInventory(target)
-        drawDemoPausedBanner(target)
         drawBanner(target)
     } else if (gameState == TOLL_DIALOG) {
         drawGoalPointer(target)

@@ -64,6 +64,33 @@ function setZombieMode(zombie: Sprite, mode: number) {
     } else if (mode == 1) {
         zombie.follow(targetSprite, getZombieSpeed() + 10)
         playCoreAnimation(zombie, [zAttack, zIdle], 120, true)
+    } else if (mode == 2) {
+        zombie.follow(null, 0)
+        let closestCampfireDist = 9999
+        let closestCampfireX = -1
+        let closestCampfireY = -1
+        let zc = Math.floor(zombie.x / TILE)
+        let zr = Math.floor(zombie.y / TILE)
+        for (let c = 0; c < campfireCols.length; c++) {
+            let cx = campfireCols[c]
+            let cy = campfireRows[c]
+            let dist = Math.abs(zc - cx) + Math.abs(zr - cy)
+            if (dist < closestCampfireDist) {
+                closestCampfireDist = dist
+                closestCampfireX = cx * TILE + 8
+                closestCampfireY = cy * TILE + 8
+            }
+        }
+        if (closestCampfireX >= 0) {
+            let dx = zombie.x - closestCampfireX
+            let dy = zombie.y - closestCampfireY
+            let len = Math.sqrt(dx * dx + dy * dy)
+            if (len == 0) { dx = 1; len = 1; }
+            let speed = getZombieSpeed() + 10
+            zombie.vx = (dx / len) * speed
+            zombie.vy = (dy / len) * speed
+        }
+        playCoreAnimation(zombie, [zWalk1, zIdle, zWalk2, zIdle], 100, true)
     } else {
         zombie.follow(null, 0)
         zombie.vx = 0
@@ -147,26 +174,46 @@ function updateSkeletonTargeting() {
 
 // Memory-safe Scarecrow Tracking & Spawning
 // --------------------------------------------------------------------------
-let scIdle: Image = null
-let scWalk: Image = null
+let scIdle: Image = img`
+    . . . . . . . . . . . . . . . .
+    . . . . . . . . . . . . . . . .
+    . . . . . . 4 4 4 4 . . . . . .
+    . . . . . . f 4 4 f . . . . . .
+    . . . . . . 4 f f 4 . . . . . .
+    . . . . . . 4 4 4 4 . . . . . .
+    . . . . . 5 5 5 5 5 5 . . . . .
+    . . . 4 4 4 4 4 4 4 4 4 4 . . .
+    . . . 4 4 4 4 4 4 4 4 4 4 . . .
+    . . . . . 5 5 5 5 5 5 . . . . .
+    . . . . . 5 5 5 5 5 5 . . . . .
+    . . . . . . . e e . . . . . . .
+    . . . . . . . e e . . . . . . .
+    . . . . . . . e e . . . . . . .
+    . . . . . . . e e . . . . . . .
+    . . . . . . . e e . . . . . . .
+`
+
+let scWalk: Image = img`
+    . . . . . . . . . . . . . . . .
+    . . . . . . . . . . . . . . . .
+    . . . . . . 4 4 4 4 . . . . . .
+    . . . . . . f 4 4 f . . . . . .
+    . . . . . . 4 f f 4 . . . . . .
+    . . . . . . 4 4 4 4 . . . . . .
+    . . . . . 5 5 5 5 5 5 . . . . .
+    . . . 4 4 4 4 4 4 4 4 4 4 . . .
+    . . . 4 4 4 4 4 4 4 4 4 4 . . .
+    . . . . . 5 5 5 5 5 5 . . . . .
+    . . . . . 5 5 5 5 5 5 . . . . .
+    . . . . . . e . . . . . . . . .
+    . . . . . . e . . . . . . . . .
+    . . . . . . . e . . . . . . . .
+    . . . . . . . . e . . . . . . .
+    . . . . . . . . . e . . . . . .
+`
 
 function initScarecrowImages() {
-    if (scIdle != null) return
-    scIdle = image.ofBuffer(hex`000400001000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000`) // Will overwrite with clone
-    scWalk = scIdle.clone()
-    
-    // Draw a basic straw/wood scarecrow shape
-    scIdle.fillRect(6, 2, 4, 4, 4) // straw head
-    scIdle.fillRect(5, 6, 6, 5, 5) // straw body (yellow/brown)
-    scIdle.fillRect(3, 7, 10, 2, 4) // arms
-    scIdle.fillRect(7, 11, 2, 5, 14) // wooden post leg
-    scIdle.setPixel(6, 3, 15); scIdle.setPixel(9, 3, 15) // eyes
-    scIdle.setPixel(7, 4, 15); scIdle.setPixel(8, 4, 15) // mouth
-    
-    scWalk = scIdle.clone()
-    scWalk.fillRect(7, 11, 2, 5, 0) // remove straight post
-    scWalk.setPixel(6, 11, 14); scWalk.setPixel(6, 12, 14) // wobble leg
-    scWalk.setPixel(7, 13, 14); scWalk.setPixel(8, 14, 14); scWalk.setPixel(9, 15, 14)
+    // Images are statically initialized
 }
 
 function spawnScarecrow(col: number, row: number) {
@@ -368,15 +415,29 @@ game.onUpdateInterval(2000, function () {
 game.onUpdateInterval(ZOMBIE_MODE_CHECK_MS, function () {
     if (gameState != PLAYING || player == null || inventoryOpen) return
 
-    for (let zombie of zombieRefs) {
-        let idx = zombieIndex(zombie)
-        if (idx < 0) continue
+    for (let i = zombieRefs.length - 1; i >= 0; i--) {
+        let zombie = zombieRefs[i]
+        
+        let closestCampfireDist = 9999
+        let zc = Math.floor(zombie.x / TILE)
+        let zr = Math.floor(zombie.y / TILE)
+
+        for (let c = 0; c < campfireCols.length; c++) {
+            let dist = Math.abs(zc - campfireCols[c]) + Math.abs(zr - campfireRows[c])
+            if (dist < closestCampfireDist) closestCampfireDist = dist
+        }
+
+        if (closestCampfireDist <= 1) {
+            zombie.destroy(effects.fire, 150)
+            forgetZombie(zombie)
+            continue
+        }
         
         let targetSprite = player
         let bestDist = Math.abs(player.x - zombie.x) + Math.abs(player.y - zombie.y)
         
-        for (let i = 0; i < scarecrowRefs.length; i++) {
-            let sc = scarecrowRefs[i]
+        for (let j = 0; j < scarecrowRefs.length; j++) {
+            let sc = scarecrowRefs[j]
             let dist = Math.abs(sc.x - zombie.x) + Math.abs(sc.y - zombie.y)
             if (dist < bestDist) {
                 bestDist = dist
@@ -387,10 +448,15 @@ game.onUpdateInterval(ZOMBIE_MODE_CHECK_MS, function () {
         let near = bestDist < ZOMBIE_AGGRO_RANGE
         let desiredMode = near ? 1 : 0
         
-        // Only call if mode changed OR if we need to force follow the new target
-        // MakeCode follow handles movement automatically, so we just call it to update speed/target
-        zombieModes[idx] = -1 // Force update so setZombieMode runs
-        setZombieMode(zombie, desiredMode)
+        if (closestCampfireDist <= 8) {
+            desiredMode = 2
+        }
+        
+        let idx = zombieIndex(zombie)
+        if (idx >= 0) {
+            zombieModes[idx] = -1 // Force update so setZombieMode runs
+            setZombieMode(zombie, desiredMode)
+        }
     }
 })
 

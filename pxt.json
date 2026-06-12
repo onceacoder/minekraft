@@ -3,7 +3,8 @@
     "description": "",
     "dependencies": {
         "device": "*",
-        "sprite-scaling": "*"
+        "sprite-scaling": "*",
+        "controller": "*"
     },
     "files": [
         "assets/images.ts",
@@ -11,9 +12,7 @@
         "world.ts",
         "obstacles.ts",
         "dungeon.ts",
-        "audio.ts",
         "enemies.ts",
-        "demo.ts",
         "player.ts",
         "save.ts",
         "game_lifecycle.ts",
@@ -21,13 +20,10 @@
         "main.ts",
         "README.md",
         "assets.json",
-        "main.py",
         "tilemap.g.jres",
         "tilemap.g.ts"
     ],
-    "testFiles": [
-        "test.ts"
-    ],
+    "testFiles": [],
     "targetVersions": {
         "target": "4.0.14",
         "targetId": "arcade"

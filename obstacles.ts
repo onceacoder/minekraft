@@ -8,7 +8,7 @@
  * Called from main.ts game.onUpdate()
  */
 function updateObstacles() {
-    if (gameState == TOLL_DIALOG && demoMode) {
+    if (gameState == TOLL_DIALOG) {
         if (game.runtime() % 1000 < 50) { // Slight delay to show dialog before acting
             let current = 0
             if (tollMat == MAT_DIRT) current = invDirt
@@ -33,9 +33,7 @@ function updateObstacles() {
                 // Bounce away and go back to harvesting
                 player.x -= 32 * getSign(player.x - goalCol * TILE - 8)
                 player.y -= 32 * getSign(player.y - goalRow * TILE - 8)
-                gameState = PLAYING
-                demoSeekDiamond = false
-                demoStateUntil = 0
+                showBanner("NOT ENOUGH RESOURCES")
             }
         }
         return
@@ -71,6 +69,18 @@ function updateObstacles() {
     // of a Campfire (using distance squared to avoid floating point `Math.sqrt`), 
     // the meter replenishes. We iterate backwards over the parallel campfire 
     // arrays to safely use `.splice()` without breaking the loop index.
+    // Decay campfires globally
+    for (let i = campfireCols.length - 1; i >= 0; i--) {
+        campfireHealths[i] -= 1
+        if (campfireHealths[i] <= 0) {
+            // Fire died
+            setTile(campfireCols[i], campfireRows[i], GRASS)
+            campfireCols.splice(i, 1)
+            campfireRows.splice(i, 1)
+            campfireHealths.splice(i, 1)
+        }
+    }
+
     if (activeObstacle == OBSTACLE_FREEZE) {
         if (survivalTimer > 0) {
             survivalTimer -= 33
@@ -83,23 +93,13 @@ function updateObstacles() {
         }
 
         let isWarm = false
-        // Iterate backwards so we can splice cleanly
-        for (let i = campfireCols.length - 1; i >= 0; i--) {
+        // Iterate over campfires to check distance
+        for (let i = 0; i < campfireCols.length; i++) {
             let cc = campfireCols[i]
             let cr = campfireRows[i]
             let distSq = (player.x / 16 - cc) * (player.x / 16 - cc) + (player.y / 16 - cr) * (player.y / 16 - cr)
             if (distSq < 16) { // Within 4 tiles
                 isWarm = true
-            }
-            
-            // Degrade campfire health
-            campfireHealths[i] -= 1
-            if (campfireHealths[i] <= 0) {
-                // Fire died
-                setTile(cc, cr, GRASS)
-                campfireCols.splice(i, 1)
-                campfireRows.splice(i, 1)
-                campfireHealths.splice(i, 1)
             }
         }
 

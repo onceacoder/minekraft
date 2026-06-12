@@ -121,6 +121,7 @@ const FREEZE_METER_MAX = 1000
 let campfireCols: number[] = []
 let campfireRows: number[] = []
 let campfireHealths: number[] = []
+let campfireFrames: Image[] = []
 
 // Dungeon State
 let inDungeon = false
@@ -143,43 +144,6 @@ let level = 1
 let firstTheme = 0
 let theme = 0
 let musicToken = 0
-
-// Auto-playing Demo Mode tracking variables
-let demoMode = false
-let demoPaused = false
-let demoActionCooldown = 0
-let demoHarvestCooldown = 0
-let demoWaypointCol = 24
-let demoWaypointRow = 10
-let demoWaypointUntil = 0
-let demoPauseUntil = 0
-let demoRecoveryUntil = 0
-let demoMoveUntil = 0
-let demoHeldVx = 0
-let demoHeldVy = 0
-let demoRerouteCooldown = 0
-let demoModeState = 0
-let demoStateUntil = 0
-let demoStuckCount = 0
-let demoTrajectoryStartCol = 0
-let demoTrajectoryStartRow = 0
-let demoTrajectoryEndCol = 0
-let demoTrajectoryEndRow = 0
-let demoTrajectoryUntil = 0
-let demoTrajectoryLen = 14
-let demoLastCol = 0
-let demoLastRow = 0
-let demoLastPosCheck = 0
-let demoNoProgressCount = 0
-let demoLastMoveX = 0
-let demoLastMoveY = 0
-let demoReverseCount = 0
-let demoEscapeUntil = 0
-let demoEscapeVx = 0
-let demoEscapeVy = 0
-let demoBuildCooldown = 0
-let demoStartedAt = 0
-let demoSeekDiamond = false
 
 // Player Inventory and Status
 let invDirt = 0
@@ -238,5 +202,4 @@ namespace SpriteKind {
     export const Skeleton = SpriteKind.create()
     export const Scarecrow = SpriteKind.create()
 }
-
 

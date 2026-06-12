@@ -19,11 +19,7 @@ function resumePlayer() {
         return
     }
 
-    if (demoMode) {
-        controller.moveSprite(player, 0, 0)
-    } else {
-        controller.moveSprite(player, PLAYER_SPEED, PLAYER_SPEED)
-    }
+    controller.moveSprite(player, PLAYER_SPEED, PLAYER_SPEED)
 }
 
 function stopEnemies() {
@@ -48,6 +44,7 @@ function destroyLevelSprites() {
         skel.destroy()
     }
     for (let f of sprites.allOfKind(SpriteKind.Food)) f.destroy()
+    for (let s of sprites.allOfKind(SpriteKind.Scarecrow)) s.destroy()
 
     player = null
     targetCursor = null
@@ -56,6 +53,7 @@ function destroyLevelSprites() {
     zombieModes = []
     skeletonRefs = []
     skeletonTargets = []
+    scarecrowRefs = []
 
     // Safety clear for entire custom animation engine pipeline
     animSprites = []
@@ -88,7 +86,7 @@ function moveInventorySelection(amount: number) {
 
 function setupLevel() {
     destroyLevelSprites() // Clean slate for the new level
-    chooseTheme() // Randomize tile color palette
+
     initTiles() // Rebuild tile images with the new theme
     
     // Select an active obstacle from the user's enabled settings
@@ -191,11 +189,7 @@ function setupLevel() {
     else showBanner("FIND THE DIAMOND")
 
     resumePlayer()
-    if (activeObstacle == OBSTACLE_FREEZE) {
-        playNightMusic()
-    } else {
-        playLevelMusic()
-    }
+
 }
 
 function beginLevel(levelNo: number) {
@@ -223,15 +217,9 @@ function startGame() {
     invIron = 0
     selectedMat = MAT_DIRT
 
-    if (demoMode) {
-        selectedLevels = INFINITY
-        selectedHealth = INFINITY
-    }
-
     if (selectedHealth == INFINITY) info.setLife(7)
     else info.setLife(selectedHealth)
 
-    demoStartedAt = game.runtime()
     beginLevel(1)
 }
 
@@ -241,16 +229,10 @@ function returnToTitleFromVictory() {
     gameState = TITLE
     titleChoice = 0
     optionChoice = 0
-    demoPaused = false
-    demoActionCooldown = 0
-    demoHarvestCooldown = 0
-    demoBuildCooldown = 0
-    demoPauseUntil = 0
     scene.centerCameraAt(80, 60)
 }
 
 function finishLevel() {
-    stopLevelMusic()
 
     if (selectedLevels == INFINITY) {
         beginLevel(level + 1)
@@ -259,6 +241,5 @@ function finishLevel() {
     } else {
         gameState = VICTORY
         destroyLevelSprites()
-        playVictoryJingle()
     }
 }

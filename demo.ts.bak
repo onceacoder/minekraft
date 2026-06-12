@@ -2,14 +2,14 @@
 // Demo mode AI. Upgraded to natural 8-way diagonal steering.
 
 // --------------------------------------------------------------------------
-function isDemoActive(): boolean {
+isDemoActive = function(): boolean {
     return demoMode && gameState == PLAYING
 }
 
 let demoExploredCols: number[] = []
 let demoExploredRows: number[] = []
 
-function toggleDemoPause() {
+toggleDemoPause = function() {
     if (!isDemoActive()) return
 
     demoPaused = !demoPaused
@@ -432,7 +432,7 @@ function demoTryHarvestNearby(): boolean {
 
                 facingDx = dx
                 facingDy = dy
-                performTargetAction()
+                performShortAction()
                 demoHarvestCooldown = game.runtime() + randint(700, 1500)
                 demoMoveUntil = 0
                 return true
@@ -463,7 +463,7 @@ function demoHarvestBlocker(vx: number, vy: number): boolean {
     if (isHarvestable(getTileId(col, row))) {
         facingDx = dx
         facingDy = dy
-        performTargetAction()
+        performShortAction()
         demoHarvestCooldown = game.runtime() + randint(800, 1600)
         demoActionCooldown = game.runtime() + 500
         demoMoveUntil = 0
@@ -473,7 +473,7 @@ function demoHarvestBlocker(vx: number, vy: number): boolean {
     return false
 }
 
-function demoSelectBridgeMaterial(): boolean {
+demoSelectBridgeMaterial = function(): boolean {
     if (invWood > 0) { selectedMat = MAT_WOOD; return true; }
     return false
 }
@@ -508,11 +508,11 @@ function demoTryBuildCampfire(): boolean {
                     facingDy = dy
                     // 1. Build Timber
                     selectedMat = MAT_WOOD
-                    performTargetAction()
+                    performShortAction()
                     
                     // 2. Ignite Campfire with Grass
                     selectedMat = MAT_GRASS
-                    performTargetAction()
+                    performShortAction()
                     
                     demoBuildCooldown = game.runtime() + 4000
                     
@@ -545,7 +545,7 @@ function demoTryBuildRandomly(): boolean {
             if (getTileId(col, row) == GRASS) {
                 facingDx = dx
                 facingDy = dy
-                performTargetAction()
+                performShortAction()
                 demoBuildCooldown = game.runtime() + randint(1100, 2200)
                 demoMoveUntil = 0
                 return true
@@ -577,7 +577,7 @@ function demoSetFacingFromVelocity() {
     }
 }
 
-function demoStartEscape() {
+demoStartEscape = function() {
     if (player == null) return
 
     demoStop()
@@ -721,7 +721,7 @@ function demoApplySafeVelocity(vx: number, vy: number) {
             if (getTileId(testCol, testRow) == WATER && demoSelectBridgeMaterial()) {
                 facingDx = testCol - playerCol()
                 facingDy = testRow - playerRow()
-                performTargetAction()
+                performShortAction()
                 demoActionCooldown = game.runtime() + 600
                 demoMoveUntil = 0
                 demoStuckCount = 0
@@ -780,7 +780,7 @@ function demoComputeVelocityTowards(col: number, row: number) {
                 facingDx = fdx
                 facingDy = fdy
                 if (game.runtime() > demoActionCooldown) {
-                    performTargetAction()
+                    performShortAction()
                     demoActionCooldown = game.runtime() + 300
                 }
             }
@@ -791,13 +791,13 @@ function demoComputeVelocityTowards(col: number, row: number) {
                     selectedMat = MAT_BONE
                     facingDx = nearestDx > 0 ? 1 : (nearestDx < 0 ? -1 : 0)
                     facingDy = nearestDy > 0 ? 1 : (nearestDy < 0 ? -1 : 0)
-                    performTargetAction()
+                    performShortAction()
                     demoActionCooldown = game.runtime() + 1000
                 } else if (invIron > 0) {
                     selectedMat = MAT_IRON
                     facingDx = nearestDx > 0 ? 1 : (nearestDx < 0 ? -1 : 0)
                     facingDy = nearestDy > 0 ? 1 : (nearestDy < 0 ? -1 : 0)
-                    performTargetAction()
+                    performShortAction()
                     demoActionCooldown = game.runtime() + 1000
                 }
             }
@@ -903,7 +903,7 @@ function demoChooseBehaviour() {
     demoStateUntil = game.runtime() + randint(4500, 9000)
 }
 
-function updateDemoMode() {
+updateDemoMode = function() {
     if (!isDemoActive()) return
 
     if (demoPaused) {

@@ -225,11 +225,11 @@ function drawOptions(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["LEVELS", "HEALTH", "DEMO", "DIFFICULTY >>", "LOAD >>"];
-    for (let i = 0; i < 5; i++) {
+    let labels = ["LEVELS", "HEALTH", "DIFFICULTY >>", "LOAD >>"];
+    for (let i = 0; i < 4; i++) {
         let iy = y0 + i * itemHeight;
         if (iy > -itemHeight && iy < 60) {
-            let col = (i >= 3) ? 5 : 1;
+            let col = (i >= 2) ? 5 : 1;
             if (optionChoice == i) {
                 menuView.drawTransparentImage(arrowR, 4, iy)
                 menuView.print(labels[i], 16, iy, col)
@@ -239,7 +239,7 @@ function drawOptions(target: Image) {
 
             if (i == 0) {
                 let valCol = (optionChoice == 0 && isEditingOption) ? 5 : 1
-                if (selectedLevels == INFINITY || demoMode) {
+                if (selectedLevels == INFINITY) {
                     menuView.print("<", 84, iy, valCol)
                     drawInfinity(menuView, 95, iy - 1, valCol)
                     menuView.print(">", 118, iy, valCol)
@@ -248,16 +248,13 @@ function drawOptions(target: Image) {
                 }
             } else if (i == 1) {
                 let valCol = (optionChoice == 1 && isEditingOption) ? 5 : 1
-                if (selectedHealth == INFINITY || demoMode) {
+                if (selectedHealth == INFINITY) {
                     menuView.print("<", 84, iy, valCol)
                     drawInfinity(menuView, 95, iy - 1, valCol)
                     menuView.print(">", 118, iy, valCol)
                 } else {
                     menuView.print("< " + selectedHealth + " >", 84, iy, valCol)
                 }
-            } else if (i == 2) {
-                if (demoMode) menuView.print("< ON >", 84, iy, 1)
-                else menuView.print("< OFF >", 84, iy, 1)
             }
         }
     }
@@ -543,14 +540,6 @@ function drawGameOver(target: Image) {
     target.print("Press A", 54, 70, 1)
 }
 
-function drawDemoPausedBanner(target: Image) {
-    if (!isDemoActive() || !demoPaused) return
-
-    target.fillRect(10, 44, 140, 32, 1)
-    target.drawRect(10, 44, 140, 32, 15)
-    printBold(target, "PAUSED", 62, 50, 15)
-    target.print("press A or B to resume", 18, 64, 15)
-}
 
 
 // --------------------------------------------------------------------------
@@ -618,3 +607,29 @@ function drawHarvestGate(target: Image) {
     target.print(pct, x + 16, y + 3, 15)
 }
 
+function drawCampfires(target: Image) {
+    if (gameState != PLAYING || campfireFrames.length == 0) return
+    let cx = scene.cameraProperty(CameraProperty.Left)
+    let cy = scene.cameraProperty(CameraProperty.Top)
+    
+    let frameIdx = Math.floor(game.runtime() / 150) % campfireFrames.length
+    let frame = campfireFrames[frameIdx]
+    
+    for (let i = 0; i < campfireCols.length; i++) {
+        let scx = campfireCols[i] * TILE - cx
+        let scy = campfireRows[i] * TILE - cy
+        
+        if (scx >= -16 && scx <= 160 && scy >= -16 && scy <= 120) {
+            target.drawTransparentImage(frame, scx, scy)
+            
+            // Draw health indicator
+            let hp = campfireHealths[i]
+            let w = Math.ceil((hp / 3000) * 12)
+            if (w < 0) w = 0
+            if (w > 12) w = 12
+            
+            target.fillRect(scx + 2, scy - 4, 12, 3, 1) // Outline
+            target.fillRect(scx + 2, scy - 4, w, 3, 5)  // Yellow fill
+        }
+    }
+}

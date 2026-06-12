@@ -84,7 +84,6 @@ function loadGame(svName: string): boolean {
     }
 
     destroyLevelSprites()
-    demoMode = false
 
     level = data[0]
     info.setLife(data[1])
@@ -193,7 +192,6 @@ function loadGame(svName: string): boolean {
     gameState = PLAYING
 
     resumePlayer()
-    playLevelMusic()
     return true
 }
 

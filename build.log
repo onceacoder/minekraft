@@ -1,0 +1,2 @@
+Cannot find node_modules/pxtcli.json nor pxtarget.json
+Couldn't find PXT; maybe try 'pxt target microbit'?

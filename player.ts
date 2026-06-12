@@ -221,7 +221,7 @@ function autoAlignPlayer() {
 function updateTargetCursor() {
     if (targetCursor == null) return
 
-    if (gameState != PLAYING || demoMode || inventoryOpen) {
+    if (gameState != PLAYING || inventoryOpen) {
         targetCursor.setFlag(SpriteFlag.Invisible, true)
         return
     }
@@ -332,7 +332,7 @@ function forgetWaterBridge(col: number, row: number) {
  *    If the tile directly in front is blocked, it performs an auto-search 
  *    around the player's 8 adjacent tiles to find the nearest valid build spot.
  */
-function performTargetAction() {
+function performShortAction() {
     if (player == null) return
 
     let frontCol = playerCol() + facingDx
@@ -341,7 +341,6 @@ function performTargetAction() {
 
     let hitEnemy = false
     if (inDungeon) {
-        // Zelda Combat: check for enemies in the target tile or immediately adjacent
         for (let i = zombieRefs.length - 1; i >= 0; i--) {
             let z = zombieRefs[i]
             let zc = Math.floor(z.x / TILE)
@@ -362,7 +361,6 @@ function performTargetAction() {
     if (frontId == KEY_HOLE) {
         if (hasDungeonKey) {
             setTile(frontCol, frontRow, GRASS)
-            // Remove the 5x5 dungeon wall around the diamond
             for (let dwx = goalCol - 2; dwx <= goalCol + 2; dwx++) {
                 for (let dwy = 42; dwy <= 46; dwy++) {
                     if (getTileId(dwx, dwy) == DUNGEON_WALL) {
@@ -390,7 +388,6 @@ function performTargetAction() {
             breakEffect(frontCol, frontRow, frontId)
         }
 
-        // Restore water if this block was built over a river tile
         let restoreTile = inDungeon ? DUNGEON_FLOOR : GRASS
         if (wasWaterBridge(frontCol, frontRow)) {
             restoreTile = WATER
@@ -399,85 +396,11 @@ function performTargetAction() {
         setTile(frontCol, frontRow, restoreTile)
         playPlayerAttack(facingDx, facingDy)
         music.playTone(262, 50)
-        harvestCount++ // Harvest gate progress
+        harvestCount++
         return
     }
 
-    // If we have resources selected, attempt to build
     if (matCount() > 0 && selectedMat != MAT_SAVE) {
-        
-        // Scarecrow Building: Requires MAT_BONE as the selected item and the target 
-        // tile to be HAY. Acts as an indestructible decoy for zombies.
-        if (selectedMat == MAT_BONE && frontId == HAY) {
-            if (inDungeon) {
-                music.playTone(131, 40)
-                showBanner("NOT IN DUNGEON")
-                return
-            }
-            if (scarecrowRefs.length >= 2) {
-                music.playTone(131, 40)
-                showBanner("MAX SCARECROWS")
-                return
-            }
-            // Consume the HAY tile and spawn the scarecrow entity
-            setTile(frontCol, frontRow, GRASS)
-            spawnScarecrow(frontCol, frontRow)
-            invBones -= 1
-            playPlayerAttack(facingDx, facingDy)
-            return
-        }
-
-        // Campfire Ignition: Requires MAT_GRASS (Hay) on a TIMBER block.
-        // We push the coordinates to parallel arrays (campfireCols, campfireRows, campfireHealths)
-        // to track degradation over time without using complex objects.
-        if (selectedMat == MAT_GRASS && frontId == TIMBER) {
-            setTile(frontCol, frontRow, CAMPFIRE)
-            campfireCols.push(frontCol)
-            campfireRows.push(frontRow)
-            campfireHealths.push(3000) // Initial health (approx 100 seconds)
-            invGrass -= 1
-            playPlayerAttack(facingDx, facingDy)
-            music.playTone(400, 50)
-            
-            let effectSprite = sprites.create(blank16, SpriteKind.Food)
-            effectSprite.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
-            effectSprite.z = 20
-            effectSprite.lifespan = 200
-            effectSprite.startEffect(effects.fire, 200)
-            return
-        }
-
-        // Campfire Fueling: "Build" Wood or Hay directly over an existing campfire 
-        // to restore its health array value. Wood provides 3x more fuel than Hay.
-        if (frontId == CAMPFIRE) {
-            if (selectedMat == MAT_WOOD || selectedMat == MAT_GRASS) {
-                for (let i = 0; i < campfireCols.length; i++) {
-                    if (campfireCols[i] == frontCol && campfireRows[i] == frontRow) {
-                        let fuelAmt = (selectedMat == MAT_WOOD) ? 4500 : 1500
-                        campfireHealths[i] += fuelAmt
-                        
-                        if (selectedMat == MAT_WOOD) invWood -= 1
-                        else invGrass -= 1
-                        
-                        playPlayerAttack(facingDx, facingDy)
-                        music.playTone(400, 50)
-                        
-                        let effectSprite = sprites.create(blank16, SpriteKind.Food)
-                        effectSprite.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
-                        effectSprite.z = 20
-                        effectSprite.lifespan = 200
-                        effectSprite.startEffect(effects.fire, 200)
-                        return
-                    }
-                }
-            } else {
-                music.playTone(131, 40)
-                showBanner("FUEL WITH WOOD/GRASS")
-                return
-            }
-        }
-
-        // Try exactly the space right in front of the player
         if (frontId == GRASS || frontId == WATER || frontId == DUNGEON_FLOOR) {
             if (frontId == WATER && selectedMat != MAT_WOOD) {
                 music.playTone(131, 40)
@@ -488,7 +411,6 @@ function performTargetAction() {
             return
         }
 
-        // Auto-search: Fallback to the nearest valid grass or water around the player
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
                 if (dx == 0 && dy == 0) continue
@@ -498,29 +420,84 @@ function performTargetAction() {
                 let cid = getTileId(c, r)
                 if (cid == GRASS || cid == WATER || cid == DUNGEON_FLOOR) {
                     if (cid == WATER && selectedMat != MAT_WOOD) {
-                        continue // Skip water tiles if not using wood during auto-search
+                        continue
                     }
                     buildBlock(c, r, dx, dy)
                     return
                 }
             }
         }
+        music.playTone(131, 40)
     }
-
-    // If we are in the dungeon and hit nothing, just play the attack animation
-    if (inDungeon) {
-        playPlayerAttack(facingDx, facingDy)
-    }
-
-    // No valid action found — play a short error tone as feedback
-    music.playTone(131, 40)
 }
 
+function performLongAction() {
+    if (player == null) return
 
-// --------------------------------------------------------------------------
-// Input handling.
+    let frontCol = playerCol() + facingDx
+    let frontRow = playerRow() + facingDy
+    let frontId = getTileId(frontCol, frontRow)
 
-// --------------------------------------------------------------------------
+    if (matCount() > 0 && selectedMat != MAT_SAVE) {
+        if ((selectedMat == MAT_IRON && frontId == HAY) || (selectedMat == MAT_GRASS && frontId == SPIKES)) {
+            if (inDungeon) {
+                music.playTone(131, 40)
+                showBanner("NOT IN DUNGEON")
+                return
+            }
+            if (selectedMat == MAT_IRON) invIron += -1
+            else invGrass += -1
+
+            setTile(frontCol, frontRow, GRASS)
+            spawnScarecrow(frontCol, frontRow)
+            playPlayerAttack(facingDx, facingDy)
+            music.playTone(392, 100)
+            let fx = sprites.create(blank16, SpriteKind.Food)
+            fx.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
+            fx.startEffect(effects.starField, 500)
+            return
+        }
+
+        if ((selectedMat == MAT_WOOD && frontId == HAY) || (selectedMat == MAT_GRASS && frontId == TIMBER) || frontId == CAMPFIRE) {
+            if (inDungeon) {
+                music.playTone(131, 40)
+                showBanner("NOT IN DUNGEON")
+                return
+            }
+            if (frontId != CAMPFIRE) {
+                if (selectedMat == MAT_WOOD) invWood += -1
+                else invGrass += -1
+                setTile(frontCol, frontRow, CAMPFIRE)
+                campfireCols.push(frontCol)
+                campfireRows.push(frontRow)
+                campfireHealths.push(3000)
+            } else {
+                if (selectedMat == MAT_WOOD) invWood += -1
+                else if (selectedMat == MAT_GRASS) invGrass += -1
+                else return
+                
+                for (let i = 0; i < campfireCols.length; i++) {
+                    if (campfireCols[i] == frontCol && campfireRows[i] == frontRow) {
+                        let fuelAmt = (selectedMat == MAT_WOOD) ? 4500 : 1500
+                        campfireHealths[i] += fuelAmt
+                        break
+                    }
+                }
+            }
+
+            playPlayerAttack(facingDx, facingDy)
+            music.playTone(175, 100)
+            
+            let fx = sprites.create(blank16, SpriteKind.Food)
+            fx.setPosition(frontCol * TILE + 8, frontRow * TILE + 8)
+            fx.z = 20
+            fx.lifespan = 500
+            fx.startEffect(effects.fire, 500)
+            return
+        }
+    }
+}
+
 controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == TITLE) {
         titleChoice = 0
@@ -530,7 +507,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == OPTIONS) {
         if (isEditingOption) return
         optionChoice += -1
-        if (optionChoice < 0) optionChoice = 4
+        if (optionChoice < 0) optionChoice = 3
         return
     }
 
@@ -542,7 +519,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == OBSTACLES) {
         obstacleChoicePos += -1
-        if (obstacleChoicePos < 0) obstacleChoicePos = 3
+        if (obstacleChoicePos < 0) obstacleChoicePos = 4
         return
     }
 
@@ -563,7 +540,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
         return
     }
 
-    if (gameState == PLAYING && !demoMode && !inventoryOpen) {
+    if (gameState == PLAYING && !inventoryOpen) {
         facingDx = 0
         facingDy = -1
     }
@@ -578,7 +555,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == OPTIONS) {
         if (isEditingOption) return
         optionChoice += 1
-        if (optionChoice > 4) optionChoice = 0
+        if (optionChoice > 3) optionChoice = 0
         return
     }
 
@@ -590,7 +567,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == OBSTACLES) {
         obstacleChoicePos += 1
-        if (obstacleChoicePos > 3) obstacleChoicePos = 0
+        if (obstacleChoicePos > 4) obstacleChoicePos = 0
         return
     }
 
@@ -611,7 +588,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
         return
     }
 
-    if (gameState == PLAYING && !demoMode && !inventoryOpen) {
+    if (gameState == PLAYING && !inventoryOpen) {
         facingDx = 0
         facingDy = 1
     }
@@ -639,7 +616,16 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
         return
     }
 
-    if (gameState == PLAYING && !demoMode && !inventoryOpen) {
+    if (gameState == OBSTACLES) {
+        if (obstacleChoicePos == 0) optRiver = !optRiver
+        else if (obstacleChoicePos == 1) optSurvive = !optSurvive
+        else if (obstacleChoicePos == 2) optToll = !optToll
+        else if (obstacleChoicePos == 3) optDungeon = !optDungeon
+        else if (obstacleChoicePos == 4) optFreeze = !optFreeze
+        return
+    }
+
+    if (gameState == PLAYING && !inventoryOpen) {
         facingDx = -1
         facingDy = 0
     }
@@ -673,21 +659,30 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
         return
     }
 
-    if (gameState == PLAYING && !demoMode && !inventoryOpen) {
+    if (gameState == OBSTACLES) {
+        if (obstacleChoicePos == 0) optRiver = !optRiver
+        else if (obstacleChoicePos == 1) optSurvive = !optSurvive
+        else if (obstacleChoicePos == 2) optToll = !optToll
+        else if (obstacleChoicePos == 3) optDungeon = !optDungeon
+        else if (obstacleChoicePos == 4) optFreeze = !optFreeze
+        return
+    }
+
+    if (gameState == PLAYING && !inventoryOpen) {
         facingDx = 1
         facingDy = 0
     }
 })
 
 // INSTANT ACTION TRIGGER
+
+let aPressStart = 0
+let aLongPressTriggered = false
+let aRepeatCount = 0
+
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (gameState == VICTORY || gameState == GAMEOVER) {
         returnToTitleFromVictory()
-        return
-    }
-
-    if (isDemoActive()) {
-        toggleDemoPause()
         return
     }
 
@@ -701,21 +696,16 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         if (optionChoice == 0 || optionChoice == 1) {
             isEditingOption = !isEditingOption
         } else if (optionChoice == 2) {
-            demoMode = !demoMode
-            if (demoMode) {
-                selectedLevels = INFINITY
-                selectedHealth = INFINITY
-            } else {
-                selectedLevels = 1
-                selectedHealth = 5
-            }
-        } else if (optionChoice == 3) {
             gameState = DIFFICULTY
             difficultyChoice = 0
             menuScrollY = 0
-        } else if (optionChoice == 4) {
+        } else if (optionChoice == 3) {
             gameState = LOADING
-            loadChoices = getSaveList()
+            loadChoices = []
+            for (let i = 1; i <= 3; i++) {
+                let svName = settings.readString("save_" + i + "_name")
+                if (svName && svName.length > 0) loadChoices.push(svName)
+            }
             loadChoicePos = 0
             menuScrollY = 0
         }
@@ -727,6 +717,9 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             gameState = OBSTACLES
             obstacleChoicePos = 0
             menuScrollY = 0
+        } else {
+            gameState = OPTIONS
+            menuScrollY = 0
         }
         return
     }
@@ -737,43 +730,6 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         else if (obstacleChoicePos == 2) optToll = !optToll
         else if (obstacleChoicePos == 3) optDungeon = !optDungeon
         else if (obstacleChoicePos == 4) optFreeze = !optFreeze
-        return
-    }
-
-    if (gameState == TOLL_DIALOG) {
-        let current = 0
-        if (tollMat == MAT_DIRT) current = invDirt
-        else if (tollMat == MAT_STONE) current = invStone
-        else if (tollMat == MAT_WOOD) current = invWood
-        else if (tollMat == MAT_GRASS) current = invGrass
-        else if (tollMat == MAT_BONE) current = invBones
-        else if (tollMat == MAT_IRON) current = invIron
-
-        if (current >= tollAmount) {
-            if (tollMat == MAT_DIRT) invDirt -= tollAmount
-            else if (tollMat == MAT_STONE) invStone -= tollAmount
-            else if (tollMat == MAT_WOOD) invWood -= tollAmount
-            else if (tollMat == MAT_GRASS) invGrass -= tollAmount
-            else if (tollMat == MAT_BONE) invBones -= tollAmount
-            else if (tollMat == MAT_IRON) invIron -= tollAmount
-
-            gameState = PLAYING
-            finishLevel()
-        } else {
-            music.playTone(131, 100)
-        }
-        return
-    }
-
-    if (gameState == SAVING) {
-        if (saveNamePos < 2) {
-            saveNamePos++
-        } else {
-            let svName = saveChars.charAt(saveNameIndices[0]) + saveChars.charAt(saveNameIndices[1]) + saveChars.charAt(saveNameIndices[2])
-            if (game.ask("Save as " + svName + "?", "A=Yes B=No")) {
-                saveGame(svName)
-            }
-        }
         return
     }
 
@@ -800,18 +756,36 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         inventoryOpen = false
         resumeEnemies()
         resumePlayer()
+        // Prevent the release of 'A' from triggering a block placement
+        aLongPressTriggered = true
         return
     }
 
-    // Instantly fires the harvest/build sequence
-    performTargetAction()
+    aLongPressTriggered = false
+    aRepeatCount = 0
+    controller.setRepeatDefault(300, 300)
 })
 
-controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (isDemoActive()) {
-        toggleDemoPause()
-        return
+controller.A.onEvent(ControllerButtonEvent.Repeated, function () {
+    if (gameState != PLAYING || inventoryOpen) return
+    aRepeatCount++
+    if (aRepeatCount >= 1 && !aLongPressTriggered) {
+        aLongPressTriggered = true
+        performLongAction()
     }
+})
+
+controller.A.onEvent(ControllerButtonEvent.Released, function () {
+    if (gameState != PLAYING || inventoryOpen) return
+    if (!aLongPressTriggered) {
+        performShortAction()
+    }
+    aLongPressTriggered = false
+    aRepeatCount = 0
+})
+
+
+controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
 
     if (gameState == TOLL_DIALOG) {
         gameState = PLAYING
@@ -885,15 +859,6 @@ sprites.onOverlap(SpriteKind.Player, SpriteKind.Enemy, function (sprite: Sprite,
 
     invincible = true
     scene.cameraShake(4, 300)
-    playDamageSound()
-
-    if (demoMode) {
-        demoRecoveryUntil = game.runtime() + 650
-        demoMoveUntil = 0
-        demoHeldVx = 0
-        demoHeldVy = 0
-        demoStartEscape()
-    }
 
     if (selectedHealth != INFINITY) {
         info.changeLifeBy(-1)
@@ -967,9 +932,7 @@ sprites.onOverlap(SpriteKind.Skeleton, SpriteKind.Enemy, function (skel: Sprite,
 
 info.onLifeZero(function () {
     gameState = GAMEOVER
-    stopLevelMusic()
     destroyLevelSprites()
-    playDeathSound()
 })
 
 

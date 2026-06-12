@@ -437,20 +437,20 @@ function makeKeyHole(): Image {
 
 function makeDungeonFloor(): Image {
     let im = image.create(16, 16)
-    im.fill(13)  // Light flagstone
-    im.drawRect(0, 0, 16, 16, 12)  // Mid-grey border
+    im.fill(12)  // Grey flagstone
+    im.drawRect(0, 0, 16, 16, 11)  // Dark-grey border
     // Floor tile joints
-    im.drawLine(8, 0, 8, 15, 12)
-    im.drawLine(0, 8, 15, 8, 12)
+    im.drawLine(8, 0, 8, 15, 11)
+    im.drawLine(0, 8, 15, 8, 11)
     // Highlight edges (top-left of each quad)
     im.drawLine(1, 1, 7, 1, 1)
     im.drawLine(9, 1, 14, 1, 1)
     im.drawLine(1, 9, 7, 9, 1)
     im.drawLine(9, 9, 14, 9, 1)
     // Subtle cracks
-    im.setPixel(3, 4, 12)
-    im.setPixel(4, 5, 12)
-    im.setPixel(11, 12, 12)
+    im.setPixel(3, 4, 11)
+    im.setPixel(4, 5, 11)
+    im.setPixel(11, 12, 11)
     return im
 }
 

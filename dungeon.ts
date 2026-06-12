@@ -17,24 +17,18 @@ function generateDungeon() {
     // Grid of rooms: 6x8 grid, each room is 10x8 tiles (fits in 60x64 map limit)
     let gridW = 6
     let gridH = 8
-    let roomMap: boolean[][] = []
-    let roomDepth: number[][] = []
-    for (let x = 0; x < gridW; x++) {
-        let col: boolean[] = []
-        let dCol: number[] = []
-        for (let y = 0; y < gridH; y++) {
-            col.push(false)
-            dCol.push(0)
-        }
-        roomMap.push(col)
-        roomDepth.push(dCol)
+    let roomMap: boolean[] = []
+    let roomDepth: number[] = []
+    for (let i = 0; i < gridW * gridH; i++) {
+        roomMap.push(false)
+        roomDepth.push(0)
     }
 
     // Branching DFS to generate maze-like dungeon
     let startRoomX = randint(0, gridW - 1)
     let startRoomY = randint(0, gridH - 1)
-    roomMap[startRoomX][startRoomY] = true
-    roomDepth[startRoomX][startRoomY] = 0
+    roomMap[startRoomX + startRoomY * gridW] = true
+    roomDepth[startRoomX + startRoomY * gridW] = 0
 
     let maxRooms = randint(25, 40)
     let roomsCarved = 1
@@ -58,7 +52,7 @@ function generateDungeon() {
         for (let d of dirs) {
             let nx = cx + d[0]
             let ny = cy + d[1]
-            if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH && !roomMap[nx][ny]) {
+            if (nx >= 0 && nx < gridW && ny >= 0 && ny < gridH && !roomMap[nx + ny * gridW]) {
                 neighborsX.push(nx)
                 neighborsY.push(ny)
             }
@@ -70,9 +64,9 @@ function generateDungeon() {
             let nx = neighborsX[r]
             let ny = neighborsY[r]
             
-            roomMap[nx][ny] = true
-            let depth = roomDepth[cx][cy] + 1
-            roomDepth[nx][ny] = depth
+            roomMap[nx + ny * gridW] = true
+            let depth = roomDepth[cx + cy * gridW] + 1
+            roomDepth[nx + ny * gridW] = depth
             if (depth > maxDepth) {
                 maxDepth = depth
                 deepestRoomX = nx
@@ -103,7 +97,7 @@ function generateDungeon() {
     // Carve actual rooms and place traps
     for (let x = 0; x < gridW; x++) {
         for (let y = 0; y < gridH; y++) {
-            if (roomMap[x][y]) {
+            if (roomMap[x + y * gridW]) {
                 // Carve room space with 1-tile wall border (w=8, h=6)
                 carveRoom(x * 10 + 1, y * 8 + 1, 8, 6)
                 

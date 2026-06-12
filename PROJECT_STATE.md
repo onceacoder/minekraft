@@ -27,6 +27,8 @@ MakeCode Arcade runs on severely constrained hardware (like the EF08247 microcon
 * **`demo.ts`:** Autonomous AI state-machine that plays the game.
 
 ## 4. Current Project State & Recent Implementations
+* **Automated Unit Testing:** Created a custom assert-based unit testing suite in `test.ts` to safely verify STS math and data logic.
+* **Optimized Systems:** Flattened multi-dimensional arrays in `dungeon.ts` for memory performance, fixed Zelda combat `splice()` array iteration bugs, and updated HUD/Tile palettes for contrast.
 * **RPG Visual Overhaul:** All primary tiles (Dirt, Stone, Bedrock, Wood, Leaves, Spikes, Iron Ore, Dungeon Floor, etc.) have been completely overhauled to feature high-detail 16-bit RPG styling.
 * **Dungeon Sub-Levels:** The "Key Crawl" feature successfully suspends the main overworld into memory, loads an isolated procedural dungeon with skeletons, requires finding a key to unlock the exit, and smoothly restores the overworld upon exiting.
 * **Procedural Dungeon Audio:** Dungeons now feature a unique, tension-building D-Phrygian dark ambient track.
@@ -39,7 +41,15 @@ pxt build && cp built/binary.js assets/js/binary.js
 ```
 *Note: The local `index.html` simulator loads from `assets/js/binary.js`, so the copy step is mandatory after `pxt build` to see your changes.*
 
+### Automated Testing Protocol
+Because MakeCode Arcade couples logic to a hardware simulator, unit testing requires specific care:
+1. **Update Unit Tests:** If you modify game state logic, tracking arrays, or math, add a new test case function into `test.ts` using the custom `assert()` method.
+2. **Compile and Run Tests:** You **MUST** run `pxt test` and `pxt build` in the terminal after completing any code changes.
+3. **Mandatory Pass Criteria:** An agent's task should be considered **complete ONLY after tests compile and run successfully**. If there is a compilation error or logic failure, you must attempt to fix the bug(s) before handing off the task or ending your turn.
+4. **Execution:** The `test.ts` file compiles with the game. Full integration verification is done by checking the assertions within the browser simulator or by enabling the `demo.ts` autonomous bot to stress-test memory.
+
 ## 6. Handoff Notes for the Next Agent
 * Review the `ui.ts` elements if you add new features to ensure they use consistent RPG themes (e.g., color 15 for dark text, color 5 for yellow highlights).
 * If expanding the `dungeon.ts` generation logic, ensure that memory cleanup happens in `exitDungeon()` to prevent OOM errors on subsequent runs.
+* Remember to run `pxt test` and `pxt build` after making logic adjustments, and keep `test.ts` updated with any newly introduced structural array logic.
 * Update this document whenever a major structural change or new core mechanic is added.

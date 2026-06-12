@@ -330,7 +330,8 @@ function performTargetAction() {
     let hitEnemy = false
     if (inDungeon) {
         // Zelda Combat: check for enemies in the target tile or immediately adjacent
-        for (let z of zombieRefs) {
+        for (let i = zombieRefs.length - 1; i >= 0; i--) {
+            let z = zombieRefs[i]
             let zc = Math.floor(z.x / TILE)
             let zr = Math.floor(z.y / TILE)
             if (Math.abs(zc - frontCol) <= 1 && Math.abs(zr - frontRow) <= 1) {

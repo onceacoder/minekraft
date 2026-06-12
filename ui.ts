@@ -404,7 +404,7 @@ function drawResourceHud(target: Image) {
         let boxW = text.length * 6 + 4
         target.fillRect(160 - boxW - w, 0, boxW, 12, 1)
         target.drawRect(160 - boxW - w, 0, boxW, 12, 15)
-        let color = hasDungeonKey ? 5 : 15 // 5 = yellow, 15 = black (dark)
+        let color = hasDungeonKey ? 5 : 2 // 5 = yellow, 2 = red
         target.print(text, 162 - boxW - w, 2, color)
     }
 }

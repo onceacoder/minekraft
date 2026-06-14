@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------
 function getZombieSpeed(): number {
-    return 15 + (diffZombieSpeedLevel - 1) * 10
+    return Math.floor((15 + (diffZombieSpeedLevel - 1) * 10) * 0.9)
 }
 
 // Memory-safe Zombie Array Tracking
@@ -231,8 +231,8 @@ function spawnScarecrow(col: number, row: number) {
     scarecrowRefs.push(sc)
     
     // Scarecrows wander extremely slowly
-    sc.vx = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
-    sc.vy = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
+    sc.vx = (randint(0, 1) == 0 ? 1 : -1) * randint(2, 5)
+    sc.vy = (randint(0, 1) == 0 ? 1 : -1) * randint(2, 5)
     sc.setBounceOnWall(true)
     
     playCoreAnimation(sc, [scIdle, scWalk, scIdle, scWalk], 400, true)
@@ -245,9 +245,9 @@ function updateScarecrowWandering() {
     for (let i = 0; i < scarecrowRefs.length; i++) {
         let sc = scarecrowRefs[i]
         // Randomly change direction occasionally
-        if (Math.percentChance(2)) {
-            sc.vx = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
-            sc.vy = (Math.percentChance(50) ? 1 : -1) * randint(2, 5)
+        if (randint(0, 100) < 2) {
+            sc.vx = (randint(0, 1) == 0 ? 1 : -1) * randint(2, 5)
+            sc.vy = (randint(0, 1) == 0 ? 1 : -1) * randint(2, 5)
         }
     }
 }

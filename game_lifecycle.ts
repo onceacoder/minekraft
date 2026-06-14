@@ -69,7 +69,6 @@ function createDiamondMarker() {
     diamondMarker.setPosition(goalCol * TILE + 8, goalRow * TILE + 8)
     diamondMarker.z = 30
     diamondMarker.setFlag(SpriteFlag.Ghost, true)
-    diamondMarker.startEffect(effects.coolRadial)
 }
 
 function updateDiamondMarker() {
@@ -149,7 +148,7 @@ function setupLevel() {
     targetCursor.setFlag(SpriteFlag.Invisible, true)
 
     createDiamondMarker()
-    if (activeObstacle == OBSTACLE_SURVIVE) {
+    if (activeObstacle == OBSTACLE_SURVIVE || activeObstacle == OBSTACLE_FREEZE) {
         diamondMarker.setFlag(SpriteFlag.Invisible, true)
         setTile(goalCol, goalRow, GRASS)
     }
@@ -187,6 +186,10 @@ function setupLevel() {
     else if (activeObstacle == OBSTACLE_DUNGEON) showBanner("KEY CRAWL")
     else if (activeObstacle == OBSTACLE_FREEZE) showBanner("FREEZING NIGHT")
     else showBanner("FIND THE DIAMOND")
+
+    if (activeObstacle != OBSTACLE_SURVIVE && activeObstacle != OBSTACLE_FREEZE && activeObstacle != OBSTACLE_RIVER) {
+        diamondMarker.startEffect(effects.coolRadial)
+    }
 
     resumePlayer()
 
@@ -241,5 +244,24 @@ function finishLevel() {
     } else {
         gameState = VICTORY
         destroyLevelSprites()
+        playVictoryJingle()
     }
+}
+
+function playDeathSound() {
+    music.stopAllSounds()
+    control.runInParallel(function () {
+        music.playMelody("C4 G3 D3 C3 - - - -", 100)
+    })
+}
+
+function playVictoryJingle() {
+    music.stopAllSounds()
+    control.runInParallel(function () {
+        music.playTone(523, music.beat(BeatFraction.Eighth))
+        music.playTone(392, music.beat(BeatFraction.Eighth))
+        music.playTone(330, music.beat(BeatFraction.Eighth))
+        music.playTone(523, music.beat(BeatFraction.Half))
+        music.playMelody("E G B C5 - - - -", 150)
+    })
 }

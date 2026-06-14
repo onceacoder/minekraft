@@ -1,7 +1,14 @@
 // --------------------------------------------------------------------------
-// HUD and screen rendering helpers.
+const heartImg = img`
+    . c 2 2 . 2 2 .
+    c 2 2 2 2 2 4 2
+    c 2 2 2 2 4 2 2
+    c 2 2 2 2 2 2 2
+    . c 2 2 2 2 2 .
+    . . c 2 2 2 . .
+    . . . c 2 . . .
+`
 
-// --------------------------------------------------------------------------
 function printBold(target: Image, text: string, x: number, y: number, color: number) {
     target.print(text, x, y, color)
     target.print(text, x + 1, y, color)
@@ -191,11 +198,7 @@ function drawTitle(target: Image) {
     }
 }
 
-function drawInfinity(target: Image, x: number, y: number, colour: number) {
-    target.drawCircle(x + 4, y + 4, 4, colour)
-    target.drawCircle(x + 12, y + 4, 4, colour)
-    target.setPixel(x + 8, y + 4, colour)
-}
+
 
 function drawScrollIndicator(target: Image, x: number, y: number, viewHeight: number, totalHeight: number, scrollY: number, color: number) {
     if (totalHeight <= viewHeight) return;
@@ -240,18 +243,14 @@ function drawOptions(target: Image) {
             if (i == 0) {
                 let valCol = (optionChoice == 0 && isEditingOption) ? 5 : 1
                 if (selectedLevels == INFINITY) {
-                    menuView.print("<", 84, iy, valCol)
-                    drawInfinity(menuView, 95, iy - 1, valCol)
-                    menuView.print(">", 118, iy, valCol)
+                    menuView.print("< \u221E >", 84, iy, valCol)
                 } else {
                     menuView.print("< " + selectedLevels + " >", 84, iy, valCol)
                 }
             } else if (i == 1) {
                 let valCol = (optionChoice == 1 && isEditingOption) ? 5 : 1
                 if (selectedHealth == INFINITY) {
-                    menuView.print("<", 84, iy, valCol)
-                    drawInfinity(menuView, 95, iy - 1, valCol)
-                    menuView.print(">", 118, iy, valCol)
+                    menuView.print("< \u221E >", 84, iy, valCol)
                 } else {
                     menuView.print("< " + selectedHealth + " >", 84, iy, valCol)
                 }
@@ -360,7 +359,8 @@ function drawResourceHud(target: Image) {
     // Hide default hearts if health is INFINITY
     if (selectedHealth == INFINITY) {
         target.fillRect(0, 0, 80, 12, 15) // Black background over hearts area
-        target.print("LIFE: \u221E", 2, 2, 1) // Print white "LIFE: infinity symbol"
+        target.drawTransparentImage(heartImg, 2, 2)
+        target.print("\u221E", 12, 3, 1) // Print white "infinity symbol" aligned to lowest part of heart
     }
 
     let countText = "" + matCount()

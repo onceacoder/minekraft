@@ -238,7 +238,7 @@ function updateTargetCursor() {
 function isHarvestable(id: number): boolean {
     return id == DIRT || id == BRICKS || id == STONE || id == STONE_BLOCK || 
            id == IRON_ORE || id == SPIKES || id == WOOD || id == TIMBER || 
-           id == TALL_GRASS || id == HAY || id == BONE
+           id == TALL_GRASS || id == HAY || id == BONE || id == BRIDGE
 }
 
 function matCount(): number {
@@ -285,7 +285,11 @@ function buildBlock(col: number, row: number, dirX: number, dirY: number) {
         setTile(col, row, SPIKES)
     } else if (selectedMat == MAT_WOOD) {
         invWood += -1
-        setTile(col, row, TIMBER)
+        if (getTileId(col, row) == WATER) {
+            setTile(col, row, BRIDGE)
+        } else {
+            setTile(col, row, TIMBER)
+        }
     } else if (selectedMat == MAT_GRASS) {
         invGrass += -1
         setTile(col, row, HAY)
@@ -384,7 +388,7 @@ function performShortAction() {
         else if (frontId == WOOD) invWood += 1
         else if (frontId == TALL_GRASS) invGrass += 1
         else if (frontId == BONE) invBones += 1
-        else if (frontId == BRICKS || frontId == STONE_BLOCK || frontId == TIMBER || frontId == HAY || frontId == SPIKES) {
+        else if (frontId == BRICKS || frontId == STONE_BLOCK || frontId == TIMBER || frontId == HAY || frontId == SPIKES || frontId == BRIDGE) {
             breakEffect(frontCol, frontRow, frontId)
         }
 
@@ -933,6 +937,7 @@ sprites.onOverlap(SpriteKind.Skeleton, SpriteKind.Enemy, function (skel: Sprite,
 info.onLifeZero(function () {
     gameState = GAMEOVER
     destroyLevelSprites()
+    playDeathSound()
 })
 
 

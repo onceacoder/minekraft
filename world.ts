@@ -22,6 +22,7 @@ let ironOreTile: Image = null
 let bricksTile: Image = null
 let stoneBlockTile: Image = null
 let timberTile: Image = null
+let bridgeTile: Image = null
 let tallGrassTile: Image = null
 let hayTile: Image = null
 let caveEntranceTile: Image = null
@@ -46,7 +47,7 @@ let miniHay: Image = null
 let miniSkeleton: Image = null // Represents the skeleton icon
 
 // Pre-initialize basic tiles so rendering functions have valid image references.
-initTiles()
+// Note: Called at the bottom of the file after all static image templates are initialized.
 
 
 // --------------------------------------------------------------------------
@@ -179,10 +180,7 @@ function makeSpikes(): Image {
     return im
 }
 
-/** Draws an expressive, shiny RPG-style diamond crystal */
-function makeDiamond(): Image {
-    let im = image.create(16, 16)
-    im.drawTransparentImage(img`
+let diamondImgLiteral = img`
         . . . . . . 9 9 . . . . . . .
         . . . . . 9 1 1 9 . . . . . .
         . . . . 9 1 8 8 1 9 . . . . .
@@ -199,8 +197,11 @@ function makeDiamond(): Image {
         . . . . . . 9 9 . . . . . . .
         . . . . . . . . . . . . . . .
         . . . . . . . . . . . . . . .
-    `, 0, 0)
-    return im
+    `
+
+/** Draws an expressive, shiny RPG-style diamond crystal */
+function makeDiamond(): Image {
+    return diamondImgLiteral
 }
 
 function makeWood(): Image {
@@ -343,6 +344,23 @@ function makeTimber(): Image {
     im.drawLine(7, 7, 14, 7, 4)
     im.drawLine(7, 12, 14, 12, 4)
     im.drawLine(7, 14, 14, 14, 4)
+    return im
+}
+
+function makeBridge(): Image {
+    let im = image.create(16, 16)
+    im.fill(14)
+    im.drawLine(0, 0, 15, 0, 15)
+    im.drawLine(0, 4, 15, 4, 15)
+    im.drawLine(0, 8, 15, 8, 15)
+    im.drawLine(0, 12, 15, 12, 15)
+    im.drawLine(0, 15, 15, 15, 15)
+    im.setPixel(3, 2, 4)
+    im.setPixel(12, 2, 4)
+    im.setPixel(6, 6, 4)
+    im.setPixel(9, 10, 4)
+    im.setPixel(2, 14, 4)
+    im.setPixel(13, 14, 4)
     return im
 }
 
@@ -558,6 +576,7 @@ function initTiles() {
     keyHoleTile = makeKeyHole()
     dungeonFloorTile = makeDungeonFloor()
     keyTile = makeKey()
+    bridgeTile = makeBridge()
     
     campfireFrames = []
     campfireFrames.push(makeCampfire(0))
@@ -569,7 +588,8 @@ function initTiles() {
         grassTile, dirtTile, stoneTile, bedrockTile,
         dirtWallTile, spikesTile, diamondTile, woodTile, leavesTile, boneTile, waterTile,
         ironOreTile, bricksTile, stoneBlockTile, timberTile, tallGrassTile, hayTile,
-        caveEntranceTile, dungeonWallTile, keyHoleTile, dungeonFloorTile, keyTile, campfireTile
+        caveEntranceTile, dungeonWallTile, keyHoleTile, dungeonFloorTile, keyTile, campfireTile,
+        bridgeTile
     ]
 
     // Generate scaled-down 8x8 mini icons from actual tile images
@@ -779,4 +799,6 @@ function generateWorld() {
 
     generateObstacleFeatures(routeX)
 }
+
+initTiles()
 

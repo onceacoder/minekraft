@@ -28,8 +28,17 @@ function makeCodeRun(options) {
             code.replace(/^\/\/\s+meta=([^\n]+)\n/m, function (m, metasrc) {
                 meta = JSON.parse(metasrc);
             })
+            if (!meta) {
+                meta = {
+                    simUrl: "https://trg-arcade.userpxt.io/---simulator",
+                    cdnUrl: "https://cdn.makecode.com",
+                    version: "v0.0.0",
+                    target: "arcade",
+                    targetVersion: "4.0.14"
+                };
+            }
             var vel = document.getElementById("version");
-            if (meta.version && meta.repo && vel) {
+            if (meta && meta.version && meta.repo && vel) {
                 var ap = document.createElement("a");
                 ap.download = "arcade.uf2";
                 ap.href = "https://github.com/" + meta.repo + "/releases/download/v" + meta.version + "/arcade.uf2";

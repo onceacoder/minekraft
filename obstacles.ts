@@ -57,7 +57,10 @@ function updateObstacles() {
                 survivalPhase = 0
                 survivalTimer = 0
                 setTile(goalCol, goalRow, DIAMOND)
-                if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+                if (diamondMarker) {
+                    diamondMarker.setFlag(SpriteFlag.Invisible, false)
+                    diamondMarker.startEffect(effects.coolRadial)
+                }
                 showBanner("DIAMOND APPEARED!")
                 music.playTone(440, 500)
             }
@@ -86,7 +89,10 @@ function updateObstacles() {
             survivalTimer -= 33
             if (survivalTimer <= 0) {
                 setTile(goalCol, goalRow, DIAMOND)
-                if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+                if (diamondMarker) {
+                    diamondMarker.setFlag(SpriteFlag.Invisible, false)
+                    diamondMarker.startEffect(effects.coolRadial)
+                }
                 showBanner("SURVIVED THE NIGHT!")
                 music.playTone(440, 500)
             }

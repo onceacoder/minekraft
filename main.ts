@@ -110,7 +110,10 @@ game.onUpdate(function () {
     if (harvestGoal > 0 && harvestCount >= harvestGoal && activeObstacle != OBSTACLE_SURVIVE) {
         harvestGoal = 0 // Gate cleared, stop checking
         setTile(goalCol, goalRow, DIAMOND)
-        if (diamondMarker) diamondMarker.setFlag(SpriteFlag.Invisible, false)
+        if (diamondMarker) {
+            diamondMarker.setFlag(SpriteFlag.Invisible, false)
+            diamondMarker.startEffect(effects.coolRadial)
+        }
         showBanner("DIAMOND APPEARED!")
         music.playTone(440, 500)
     }

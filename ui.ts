@@ -90,59 +90,6 @@ function selectedIconY(): number {
     else return 114
 }
 
-function drawBlockyZombie_OLD(target: Image, x: number, y: number) {
-    target.fillRect(x + 4, y, 8, 8, 7)
-    target.fillRect(x + 2, y + 8, 12, 12, 6)
-    target.fillRect(x, y + 10, 3, 8, 7)
-    target.fillRect(x + 13, y + 10, 3, 8, 7)
-    target.fillRect(x + 3, y + 20, 4, 8, 7)
-    target.fillRect(x + 9, y + 20, 4, 8, 7)
-    target.setPixel(x + 6, y + 3, 1)
-    target.setPixel(x + 10, y + 3, 1)
-}
-
-function drawBlockyMiner_OLD(target: Image, x: number, y: number) {
-    target.fillRect(x + 4, y, 8, 8, 14)
-    target.fillRect(x + 3, y + 8, 10, 12, 9)
-    target.fillRect(x, y + 10, 3, 8, 12)
-    target.fillRect(x + 13, y + 10, 3, 8, 12)
-    target.fillRect(x + 3, y + 20, 4, 8, 12)
-    target.fillRect(x + 9, y + 20, 4, 8, 12)
-    target.setPixel(x + 6, y + 3, 1)
-    target.setPixel(x + 10, y + 3, 1)
-}
-
-function drawTitle_OLD(target: Image) {
-    target.fillRect(0, 0, 160, 120, 9)
-    target.fillRect(0, 72, 160, 48, 7)
-    target.fillRect(0, 88, 160, 32, 4)
-    target.fillRect(0, 102, 160, 18, 5)
-
-    for (let x = 0; x < 160; x += 24) {
-        target.fillRect(x + 8, 46, 8, 34, 14)
-        target.fillRect(x, 34, 24, 18, 7)
-        target.fillRect(x + 4, 24, 16, 18, 6)
-    }
-
-    target.fillRect(12, 5, 136, 42, 15)
-    target.drawRect(12, 5, 136, 42, 1)
-    target.print("MINEKRAFT", 52, 12, 1)
-    target.print("by Luca", 62, 31, 1)
-
-    drawBlockyMiner_OLD(target, 35, 58)
-    drawBlockyZombie_OLD(target, 104, 58)
-
-    target.fillRect(34, 86, 92, 30, 15)
-    target.drawRect(34, 86, 92, 30, 1)
-
-    if (titleChoice == 0) {
-        target.print("> START", 55, 92, 1)
-        target.print("  SETTINGS", 48, 104, 1)
-    } else {
-        target.print("  START", 55, 92, 1)
-        target.print("> SETTINGS", 48, 104, 1)
-    }
-}
 
 function drawRpgMiner(target: Image, x: number, y: number) {
     target.drawTransparentImage(pDown, x, y)

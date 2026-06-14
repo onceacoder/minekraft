@@ -502,48 +502,101 @@ function performLongAction() {
     }
 }
 
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+function navigateMenu(dir: number) {
     if (gameState == TITLE) {
-        titleChoice = 0
+        titleChoice = dir > 0 ? 1 : 0
         return
     }
-
     if (gameState == OPTIONS) {
         if (isEditingOption) return
-        optionChoice += -1
-        if (optionChoice < 0) optionChoice = 3
+        optionChoice = (optionChoice + dir + 4) % 4
         return
     }
-
     if (gameState == DIFFICULTY) {
-        difficultyChoice += -1
-        if (difficultyChoice < 0) difficultyChoice = 2
+        difficultyChoice = (difficultyChoice + dir + 3) % 3
         return
     }
-
     if (gameState == OBSTACLES) {
-        obstacleChoicePos += -1
-        if (obstacleChoicePos < 0) obstacleChoicePos = 4
+        obstacleChoicePos = (obstacleChoicePos + dir + 5) % 5
         return
     }
-
     if (gameState == SAVING) {
-        saveNameIndices[saveNamePos] = (saveNameIndices[saveNamePos] + 1) % 36
+        saveNameIndices[saveNamePos] = (saveNameIndices[saveNamePos] - dir + 36) % 36
         return
     }
-
     if (gameState == LOADING) {
         if (loadChoices.length > 0) {
-            loadChoicePos = (loadChoicePos - 1 + loadChoices.length) % loadChoices.length
+            loadChoicePos = (loadChoicePos + dir + loadChoices.length) % loadChoices.length
+        }
+        return
+    }
+    if (gameState == PLAYING && inventoryOpen) {
+        moveInventorySelection(dir)
+        return
+    }
+}
+
+function adjustSetting(dir: number) {
+    if (gameState == OPTIONS) {
+        if (!isEditingOption) return
+        if (dir < 0) {
+            if (optionChoice == 0) {
+                if (selectedLevels == INFINITY) selectedLevels = 10
+                else if (selectedLevels > 1) selectedLevels--
+            } else if (optionChoice == 1) {
+                if (selectedHealth == INFINITY) selectedHealth = 7
+                else if (selectedHealth > 1) selectedHealth--
+            }
+        } else {
+            if (optionChoice == 0) {
+                if (selectedLevels == INFINITY) selectedLevels = 1
+                else {
+                    selectedLevels++
+                    if (selectedLevels > 10) selectedLevels = INFINITY
+                }
+            } else if (optionChoice == 1) {
+                if (selectedHealth == INFINITY) selectedHealth = 1
+                else {
+                    selectedHealth++
+                    if (selectedHealth > 7) selectedHealth = INFINITY
+                }
+            }
         }
         return
     }
 
-    if (gameState == PLAYING && inventoryOpen) {
-        moveInventorySelection(-1)
+    if (gameState == DIFFICULTY) {
+        if (dir < 0) {
+            if (difficultyChoice == 0) {
+                if (diffZombieSpeedLevel > 1) diffZombieSpeedLevel--
+            } else if (difficultyChoice == 1) {
+                if (diffZombieCountOffset > -5) diffZombieCountOffset--
+            }
+        } else {
+            if (difficultyChoice == 0) {
+                if (diffZombieSpeedLevel < 5) diffZombieSpeedLevel++
+            } else if (difficultyChoice == 1) {
+                if (diffZombieCountOffset < 5) diffZombieCountOffset++
+            }
+        }
         return
     }
 
+    if (gameState == OBSTACLES) {
+        if (obstacleChoicePos == 0) optRiver = !optRiver
+        else if (obstacleChoicePos == 1) optSurvive = !optSurvive
+        else if (obstacleChoicePos == 2) optToll = !optToll
+        else if (obstacleChoicePos == 3) optDungeon = !optDungeon
+        else if (obstacleChoicePos == 4) optFreeze = !optFreeze
+        return
+    }
+}
+
+controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (gameState != PLAYING || inventoryOpen) {
+        navigateMenu(-1)
+        return
+    }
     if (gameState == PLAYING && !inventoryOpen) {
         facingDx = 0
         facingDy = -1
@@ -551,47 +604,10 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState == TITLE) {
-        titleChoice = 1
+    if (gameState != PLAYING || inventoryOpen) {
+        navigateMenu(1)
         return
     }
-
-    if (gameState == OPTIONS) {
-        if (isEditingOption) return
-        optionChoice += 1
-        if (optionChoice > 3) optionChoice = 0
-        return
-    }
-
-    if (gameState == DIFFICULTY) {
-        difficultyChoice += 1
-        if (difficultyChoice > 2) difficultyChoice = 0
-        return
-    }
-
-    if (gameState == OBSTACLES) {
-        obstacleChoicePos += 1
-        if (obstacleChoicePos > 4) obstacleChoicePos = 0
-        return
-    }
-
-    if (gameState == SAVING) {
-        saveNameIndices[saveNamePos] = (saveNameIndices[saveNamePos] - 1 + 36) % 36
-        return
-    }
-
-    if (gameState == LOADING) {
-        if (loadChoices.length > 0) {
-            loadChoicePos = (loadChoicePos + 1) % loadChoices.length
-        }
-        return
-    }
-
-    if (gameState == PLAYING && inventoryOpen) {
-        moveInventorySelection(1)
-        return
-    }
-
     if (gameState == PLAYING && !inventoryOpen) {
         facingDx = 0
         facingDy = 1
@@ -599,36 +615,10 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState == OPTIONS) {
-        if (!isEditingOption) return
-        if (optionChoice == 0) {
-            if (selectedLevels == INFINITY) selectedLevels = 10
-            else if (selectedLevels > 1) selectedLevels--
-        } else if (optionChoice == 1) {
-            if (selectedHealth == INFINITY) selectedHealth = 7
-            else if (selectedHealth > 1) selectedHealth--
-        }
+    if (gameState != PLAYING || inventoryOpen) {
+        adjustSetting(-1)
         return
     }
-
-    if (gameState == DIFFICULTY) {
-        if (difficultyChoice == 0) {
-            if (diffZombieSpeedLevel > 1) diffZombieSpeedLevel--
-        } else if (difficultyChoice == 1) {
-            if (diffZombieCountOffset > -5) diffZombieCountOffset--
-        }
-        return
-    }
-
-    if (gameState == OBSTACLES) {
-        if (obstacleChoicePos == 0) optRiver = !optRiver
-        else if (obstacleChoicePos == 1) optSurvive = !optSurvive
-        else if (obstacleChoicePos == 2) optToll = !optToll
-        else if (obstacleChoicePos == 3) optDungeon = !optDungeon
-        else if (obstacleChoicePos == 4) optFreeze = !optFreeze
-        return
-    }
-
     if (gameState == PLAYING && !inventoryOpen) {
         facingDx = -1
         facingDy = 0
@@ -636,42 +626,10 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
 })
 
 controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState == OPTIONS) {
-        if (!isEditingOption) return
-        if (optionChoice == 0) {
-            if (selectedLevels == INFINITY) selectedLevels = 1
-            else {
-                selectedLevels++
-                if (selectedLevels > 10) selectedLevels = INFINITY
-            }
-        } else if (optionChoice == 1) {
-            if (selectedHealth == INFINITY) selectedHealth = 1
-            else {
-                selectedHealth++
-                if (selectedHealth > 7) selectedHealth = INFINITY
-            }
-        }
+    if (gameState != PLAYING || inventoryOpen) {
+        adjustSetting(1)
         return
     }
-
-    if (gameState == DIFFICULTY) {
-        if (difficultyChoice == 0) {
-            if (diffZombieSpeedLevel < 5) diffZombieSpeedLevel++
-        } else if (difficultyChoice == 1) {
-            if (diffZombieCountOffset < 5) diffZombieCountOffset++
-        }
-        return
-    }
-
-    if (gameState == OBSTACLES) {
-        if (obstacleChoicePos == 0) optRiver = !optRiver
-        else if (obstacleChoicePos == 1) optSurvive = !optSurvive
-        else if (obstacleChoicePos == 2) optToll = !optToll
-        else if (obstacleChoicePos == 3) optDungeon = !optDungeon
-        else if (obstacleChoicePos == 4) optFreeze = !optFreeze
-        return
-    }
-
     if (gameState == PLAYING && !inventoryOpen) {
         facingDx = 1
         facingDy = 0

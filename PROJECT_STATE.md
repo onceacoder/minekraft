@@ -49,6 +49,7 @@ MakeCode Arcade runs on severely constrained hardware (like the EF08247 microcon
 * **Walkable Dock Bridges**: Placing wood logs (`MAT_WOOD`) on top of `WATER` now transforms the logs into a custom, rail-less, walkable `BRIDGE` tile instead of a solid `TIMBER` block. The bridge can be extended in all directions and is walkable by both the player and enemies. Harvesting/breaking the bridge segment restores the underlying water.
 * **Zombie Speed & Aggression Tuning**: Tuned down zombie difficulty/aggression by 10%: reduced speed across all levels by 10%, reduced detection/aggression range to 29 pixels, and relaxed spawn frequency to 5500ms.
 * **Unicode Infinity HUD**: Replaced custom rendering with direct Unicode infinity (`\u221E`) printing in options menus and HUD, precisely aligned to the bottom of the player's hearts.
+* **Code Size Optimization (Solving "!!proc || !bin.finalPass" layout errors)**: Unified redundant Up/Down and Left/Right menu handlers in `player.ts` into shared `navigateMenu` and `adjustSetting` helper functions. Purged dead/legacy functions (`drawBlockyZombie_OLD`, `drawBlockyMiner_OLD`, `drawTitle_OLD`, `makeDirtWall`, `makeLeaves`) and unused mini-images. This reduced compiled size by ~9.5 KB, successfully satisfying the microchip flash layout limits.
 
 ### Remaining Risks
 
@@ -79,4 +80,3 @@ Because MakeCode Arcade couples logic to a hardware simulator, unit testing requ
 * If expanding the `dungeon.ts` generation logic, ensure that memory cleanup happens in `exitDungeon()` to prevent OOM errors on subsequent runs.
 * Remember to run `pxt test` and `pxt build` after making logic adjustments, and keep `test.ts` updated with any newly introduced structural array logic.
 * Update this document whenever a major structural change or new core mechanic is added.
-

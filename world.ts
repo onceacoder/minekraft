@@ -35,11 +35,7 @@ let tileImages: Image[] = []
 
 // Scaled-down 8x8 versions of tile images, derived from the actual tiles
 // so they always match the current theme. Generated in initTiles().
-let miniDirtWall: Image = null
 let miniSpikes: Image = null
-let miniWoodTile: Image = null
-let miniLeavesTile: Image = null
-let miniBoneTile: Image = null
 let miniBricks: Image = null
 let miniStoneBlock: Image = null
 let miniTimber: Image = null
@@ -140,17 +136,6 @@ function makeBedrock(): Image {
     return im
 }
 
-function makeDirtWall(): Image {
-    let im = image.create(16, 16)
-    im.fill(5)
-    im.drawRect(0, 0, 16, 16, 15)
-    im.drawLine(0, 4, 15, 4, 4)
-    im.drawLine(0, 9, 15, 9, 4)
-    im.drawLine(5, 0, 5, 4, 4)
-    im.drawLine(11, 4, 11, 9, 4)
-    im.drawLine(6, 9, 6, 15, 4)
-    return im
-}
 
 function makeSpikes(): Image {
     let im = image.create(16, 16)
@@ -216,26 +201,6 @@ function makeWood(): Image {
     return im
 }
 
-function makeLeaves(): Image {
-    let im = image.create(16, 16)
-    im.fill(7)  // Dark green base
-    im.drawRect(0, 0, 16, 16, 15)
-    // Leaf clusters (lighter green patches)
-    im.fillRect(2, 2, 3, 3, 6)
-    im.fillRect(9, 1, 4, 3, 6)
-    im.fillRect(5, 6, 3, 3, 6)
-    im.fillRect(11, 7, 3, 3, 6)
-    im.fillRect(1, 10, 3, 3, 6)
-    im.fillRect(7, 11, 4, 3, 6)
-    // Highlight spots
-    im.setPixel(3, 3, 10)
-    im.setPixel(10, 2, 10)
-    im.setPixel(6, 7, 10)
-    im.setPixel(12, 8, 10)
-    im.setPixel(2, 11, 10)
-    im.setPixel(8, 12, 10)
-    return im
-}
 
 function makeBone(): Image {
     let im = image.create(16, 16)
@@ -558,11 +523,9 @@ function initTiles() {
     dirtTile = makeDirt()
     stoneTile = makeStone()
     bedrockTile = makeBedrock()
-    dirtWallTile = makeDirtWall()
     spikesTile = makeSpikes()
     diamondTile = makeDiamond()
     woodTile = makeWood()
-    leavesTile = makeLeaves()
     boneTile = makeBone()
     waterTile = makeWater()
     ironOreTile = makeIronOre()
@@ -577,6 +540,9 @@ function initTiles() {
     dungeonFloorTile = makeDungeonFloor()
     keyTile = makeKey()
     bridgeTile = makeBridge()
+
+    dirtWallTile = bricksTile
+    leavesTile = grassTile
     
     campfireFrames = []
     campfireFrames.push(makeCampfire(0))
@@ -593,11 +559,7 @@ function initTiles() {
     ]
 
     // Generate scaled-down 8x8 mini icons from actual tile images
-    miniDirtWall = scaleDownHalf(dirtWallTile)
     miniSpikes = scaleDownHalf(spikesTile)
-    miniWoodTile = scaleDownHalf(woodTile)
-    miniLeavesTile = scaleDownHalf(leavesTile)
-    miniBoneTile = scaleDownHalf(boneTile)
     miniBricks = scaleDownHalf(bricksTile)
     miniStoneBlock = scaleDownHalf(stoneBlockTile)
     miniTimber = scaleDownHalf(timberTile)

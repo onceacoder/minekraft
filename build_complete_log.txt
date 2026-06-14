@@ -1,0 +1,4 @@
+Using target arcade with build engine codal
+  target: v4.1.4 /Users/georgekraev/Documents/dev/MineKraft/minekraft/node_modules/pxt-arcade
+  pxt-core: v12.3.10 /Users/georgekraev/Documents/dev/MineKraft/minekraft/node_modules/pxt-core
+building /Users/georgekraev/Documents/dev/MineKraft/minekraft

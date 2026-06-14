@@ -3,6 +3,49 @@
 // Bit-packed tile serialization for hardware-safe persistence.
 // --------------------------------------------------------------------------
 
+function packWorld(): number[] {
+    let mapArr: number[] = []
+    for (let i = 0; i < MAP_W * MAP_H; i += 6) {
+        let packed = 0;
+        for (let j = 0; j < 6; j++) {
+            packed |= (world.getNumber(NumberFormat.UInt8LE, 4 + i + j) << (j * 5));
+        }
+        mapArr.push(packed);
+    }
+    return mapArr
+}
+
+function unpackWorld(mapArr: number[]) {
+    for (let i = 0; i < mapArr.length; i++) {
+        let packed = mapArr[i];
+        for (let j = 0; j < 6; j++) {
+            world.setNumber(NumberFormat.UInt8LE, 4 + i * 6 + j, (packed >> (j * 5)) & 0x1F);
+        }
+    }
+}
+
+function packZombies(): number[] {
+    let zData: number[] = []
+    for (let z of zombieRefs) {
+        let idx = zombieIndex(z)
+        zData.push(z.x)
+        zData.push(z.y)
+        zData.push(idx >= 0 ? zombieModes[idx] : 0)
+    }
+    return zData
+}
+
+function unpackZombies(zData: number[]) {
+    if (!zData) return
+    for (let i = 0; i < zData.length / 3; i++) {
+        let zombie = sprites.create(zIdle, SpriteKind.Enemy)
+        zombie.z = 5
+        zombie.setPosition(zData[i * 3], zData[1 + i * 3])
+        rememberZombie(zombie)
+        setZombieMode(zombie, zData[2 + i * 3])
+    }
+}
+
 /**
  * Serializes the current game state and writes it to device flash storage.
  * Packs 6 tiles per int to compress 2304 tiles into 384 numbers.
@@ -31,25 +74,10 @@ function saveGame(svName: string) {
     settings.writeString("saveQueue", arr.join(","))
 
     // Pack 6 tiles per int to compress 2304 tiles into 384 numbers for hardware safety
-    let mapArr: number[] = []
-    for (let i = 0; i < MAP_W * MAP_H; i += 6) {
-        let packed = 0;
-        for (let j = 0; j < 6; j++) {
-            let id = world.getNumber(NumberFormat.UInt8LE, 4 + i + j);
-            packed |= (id << (j * 5));
-        }
-        mapArr.push(packed);
-    }
+    let mapArr = packWorld()
     settings.writeNumberArray("sav_" + svName + "_map", mapArr)
 
-    let zData: number[] = []
-    for (let z of zombieRefs) {
-        let idx = zombieIndex(z)
-        let mode = idx >= 0 ? zombieModes[idx] : 0
-        zData.push(z.x)
-        zData.push(z.y)
-        zData.push(mode)
-    }
+    let zData = packZombies()
 
     let data = [
         level, info.life(), invDirt, invStone, invWood, invGrass, invBones,
@@ -140,13 +168,7 @@ function loadGame(svName: string): boolean {
     }
 
     // Unpack binary map
-    for (let i = 0; i < mapArr.length; i++) {
-        let packed = mapArr[i];
-        for (let j = 0; j < 6; j++) {
-            let id = (packed >> (j * 5)) & 0x1F;
-            world.setNumber(NumberFormat.UInt8LE, 4 + i * 6 + j, id);
-        }
-    }
+    unpackWorld(mapArr)
 
     for (let row = 0; row < MAP_H; row++) {
         for (let col = 0; col < MAP_W; col++) {
@@ -172,17 +194,13 @@ function loadGame(svName: string): boolean {
 
     createDiamondMarker()
 
+    let zData: number[] = []
     for (let i = 0; i < zCount; i++) {
-        let zx = data[zOffset + i * 3]
-        let zy = data[zOffset + 1 + i * 3]
-        let zm = data[zOffset + 2 + i * 3]
-
-        let zombie = sprites.create(zIdle, SpriteKind.Enemy)
-        zombie.z = 5
-        zombie.setPosition(zx, zy)
-        rememberZombie(zombie)
-        setZombieMode(zombie, zm)
+        zData.push(data[zOffset + i * 3])
+        zData.push(data[zOffset + 1 + i * 3])
+        zData.push(data[zOffset + 2 + i * 3])
     }
+    unpackZombies(zData)
 
     maxZombies = 5 + level
     if (maxZombies > 10) maxZombies = 10
@@ -209,25 +227,10 @@ let overworldSavedInvBones = 0
 let overworldSavedInvIron = 0
 
 function suspendOverworld() {
-    let mapArr: number[] = []
-    for (let i = 0; i < MAP_W * MAP_H; i += 6) {
-        let packed = 0;
-        for (let j = 0; j < 6; j++) {
-            let id = world.getNumber(NumberFormat.UInt8LE, 4 + i + j);
-            packed |= (id << (j * 5));
-        }
-        mapArr.push(packed);
-    }
+    let mapArr = packWorld()
     settings.writeNumberArray("dungeon_suspend_map", mapArr)
 
-    let zData: number[] = []
-    for (let z of zombieRefs) {
-        let idx = zombieIndex(z)
-        let mode = idx >= 0 ? zombieModes[idx] : 0
-        zData.push(z.x)
-        zData.push(z.y)
-        zData.push(mode)
-    }
+    let zData = packZombies()
     settings.writeNumberArray("dungeon_suspend_zombies", zData)
 
     overworldSavedInvDirt = invDirt
@@ -250,28 +253,10 @@ function restoreOverworld() {
     let zData = settings.readNumberArray("dungeon_suspend_zombies")
 
     if (mapArr && mapArr.length == (MAP_W * MAP_H) / 6) {
-        for (let i = 0; i < mapArr.length; i++) {
-            let packed = mapArr[i];
-            for (let j = 0; j < 6; j++) {
-                let id = (packed >> (j * 5)) & 0x1F;
-                world.setNumber(NumberFormat.UInt8LE, 4 + i * 6 + j, id);
-            }
-        }
+        unpackWorld(mapArr)
     }
 
-    if (zData) {
-        for (let i = 0; i < zData.length / 3; i++) {
-            let zx = zData[i * 3]
-            let zy = zData[1 + i * 3]
-            let zm = zData[2 + i * 3]
-
-            let zombie = sprites.create(zIdle, SpriteKind.Enemy)
-            zombie.z = 5
-            zombie.setPosition(zx, zy)
-            rememberZombie(zombie)
-            setZombieMode(zombie, zm)
-        }
-    }
+    unpackZombies(zData)
 
     invDirt = overworldSavedInvDirt
     invStone = overworldSavedInvStone
@@ -279,4 +264,23 @@ function restoreOverworld() {
     invGrass = overworldSavedInvGrass
     invBones = overworldSavedInvBones
     invIron = overworldSavedInvIron
+}
+
+function deleteSave(svName: string) {
+    settings.remove("sav_" + svName + "_data")
+    settings.remove("sav_" + svName + "_map")
+    let arr = getSaveList()
+    let idx = arr.indexOf(svName)
+    if (idx >= 0) {
+        arr.splice(idx, 1)
+        settings.writeString("saveQueue", arr.join(","))
+    }
+}
+
+function getSaveName(): string {
+    let name = ""
+    for (let i = 0; i < 3; i++) {
+        name += saveChars.charAt(saveNameIndices[i])
+    }
+    return name
 }

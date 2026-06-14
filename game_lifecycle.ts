@@ -184,7 +184,7 @@ function setupLevel() {
     else if (activeObstacle == OBSTACLE_SURVIVE) showBanner("ZOMBIE SURVIVAL")
     else if (activeObstacle == OBSTACLE_TOLL) showBanner("TOLL ROAD")
     else if (activeObstacle == OBSTACLE_DUNGEON) showBanner("KEY CRAWL")
-    else if (activeObstacle == OBSTACLE_FREEZE) showBanner("FREEZING NIGHT")
+    else if (activeObstacle == OBSTACLE_FREEZE) showBanner("CAMP FIRE")
     else showBanner("FIND THE DIAMOND")
 
     if (activeObstacle != OBSTACLE_SURVIVE && activeObstacle != OBSTACLE_FREEZE && activeObstacle != OBSTACLE_RIVER) {

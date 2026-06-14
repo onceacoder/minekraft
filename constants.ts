@@ -182,6 +182,7 @@ let saveNameIndices = [0, 0, 0]
 let saveNamePos = 0
 let loadChoices: string[] = []
 let loadChoicePos = 0
+let deleteConfirmActive = false
 
 // Arrays for zombie tracking. Properly cleaned up on destruction to prevent leaks.
 let zombieRefs: Sprite[] = []

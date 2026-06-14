@@ -79,91 +79,81 @@ function makeGrass(): Image {
     }
 }
 
-function makeDirt(): Image {
-    let im = image.create(16, 16)
-    im.fill(4)  // Brown base
-    im.drawRect(0, 0, 16, 16, 15)
-    // Soil layers
-    im.drawLine(1, 4, 14, 4, 5)
-    im.drawLine(1, 9, 14, 9, 5)
-    // Pebbles / soil detail
-    im.fillRect(3, 2, 2, 1, 14)
-    im.fillRect(10, 1, 2, 1, 14)
-    im.fillRect(6, 6, 2, 1, 14)
-    im.fillRect(12, 7, 2, 1, 14)
-    im.fillRect(2, 11, 2, 1, 14)
-    im.fillRect(8, 12, 2, 1, 14)
-    // Lighter top highlights
-    im.drawLine(1, 1, 14, 1, 5)
-    return im
-}
+let dirtImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f 5 5 5 5 5 5 5 5 5 5 5 5 5 5 f
+    f 4 4 e e 4 4 4 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f 5 5 5 5 5 5 5 5 5 5 5 5 5 5 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 e e 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 4 4 4 4 4 e e 4 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f 5 5 5 5 5 5 5 5 5 5 5 5 5 5 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f 4 e e 4 4 4 4 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 4 e e 4 4 4 4 4 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f f f f f f f f f f f f f f f f
+`
 
-function makeStone(): Image {
-    let im = image.create(16, 16)
-    im.fill(12)
-    im.drawRect(0, 0, 16, 16, 15)
-    // Stone block joints
-    im.drawLine(0, 5, 15, 5, 11)
-    im.drawLine(0, 10, 15, 10, 11)
-    im.drawLine(6, 0, 6, 5, 11)
-    im.drawLine(11, 5, 11, 10, 11)
-    im.drawLine(3, 10, 3, 15, 11)
-    // Lighter highlights on top edges
-    im.drawLine(1, 1, 5, 1, 13)
-    im.drawLine(7, 1, 14, 1, 13)
-    im.drawLine(1, 6, 10, 6, 13)
-    im.drawLine(12, 6, 14, 6, 13)
-    im.drawLine(1, 11, 2, 11, 13)
-    im.drawLine(4, 11, 14, 11, 13)
-    return im
-}
+let stoneImgLiteral = img`
+    f f f f f f b f f f f f f f f f
+    f d d d d d b d d d d d d d d f
+    f c c c c c b c c c c c c c c f
+    f c c c c c b c c c c c c c c f
+    f c c c c c b c c c c c c c c f
+    b b b b b b b b b b b b b b b b
+    f d d d d d d d d d d b d d d f
+    f c c c c c c c c c c b c c c f
+    f c c c c c c c c c c b c c c f
+    f c c c c c c c c c c b c c c f
+    b b b b b b b b b b b b b b b b
+    f d d b d d d d d d d d d d d f
+    f c c b c c c c c c c c c c c f
+    f c c b c c c c c c c c c c c f
+    f c c b c c c c c c c c c c c f
+    f f f b f f f f f f f f f f f f
+`
 
-function makeBedrock(): Image {
-    let im = image.create(16, 16)
-    im.fill(15)  // Black base
-    // Large stone blocks
-    im.drawLine(0, 5, 15, 5, 11)
-    im.drawLine(0, 10, 15, 10, 11)
-    im.drawLine(8, 0, 8, 5, 11)
-    im.drawLine(4, 5, 4, 10, 11)
-    im.drawLine(12, 10, 12, 15, 11)
-    // Surface cracks
-    im.setPixel(3, 2, 11)
-    im.setPixel(4, 3, 11)
-    im.setPixel(11, 7, 11)
-    im.setPixel(7, 13, 11)
-    im.setPixel(2, 12, 11)
-    return im
-}
+let bedrockImgLiteral = img`
+    f f f f f f f f b f f f f f f f
+    f f f f f f f f b f f f f f f f
+    f f f b f f f f b f f f f f f f
+    f f f f b f f f b f f f f f f f
+    f f f f f f f f b f f f f f f f
+    b b b b b b b b b b b b b b b b
+    f f f f b f f f f f f f f f f f
+    f f f f b f f f f f f b f f f f
+    f f f f b f f f f f f f f f f f
+    f f f f b f f f f f f f f f f f
+    b b b b b b b b b b b b b b b b
+    f f f f f f f f f f f f b f f f
+    f f b f f f f f f f f f b f f f
+    f f f f f f f b f f f f b f f f
+    f f f f f f f f f f f f b f f f
+    f f f f f f f f f f f f b f f f
+`
 
-
-function makeSpikes(): Image {
-    let im = image.create(16, 16)
-    im.fill(11)  // Dark base
-    im.drawRect(0, 0, 16, 16, 15)
-    // Base plate
-    im.fillRect(1, 12, 14, 3, 12)
-    im.drawLine(1, 12, 14, 12, 13)
-    // Spike 1 (left)
-    im.drawLine(3, 12, 3, 5, 12)
-    im.drawLine(2, 12, 2, 7, 11)
-    im.drawLine(4, 12, 4, 7, 13)
-    im.setPixel(3, 4, 1)  // Sharp tip
-    im.setPixel(3, 5, 13)
-    // Spike 2 (center)
-    im.drawLine(8, 12, 8, 4, 12)
-    im.drawLine(7, 12, 7, 6, 11)
-    im.drawLine(9, 12, 9, 6, 13)
-    im.setPixel(8, 3, 1)
-    im.setPixel(8, 4, 13)
-    // Spike 3 (right)
-    im.drawLine(13, 12, 13, 6, 12)
-    im.drawLine(12, 12, 12, 8, 11)
-    im.drawLine(14, 12, 14, 8, 13)
-    im.setPixel(13, 5, 1)
-    im.setPixel(13, 6, 13)
-    return im
-}
+let spikesImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f b b b b b b b b b b b b b b f
+    f b b b b b b b b b b b b b b f
+    f b b b b b b b 1 b b b b b b f
+    f b b 1 b b b b d b b b b b b f
+    f b b d b b b b c b b b b 1 b f
+    f b b c b b b b c d b b b d b f
+    f b b c d b b b c d b b b c b f
+    f b b c d b b b c d b b b c d f
+    f b b c d b b b c d b b b c d f
+    f b b c d b b b c d b b b c d f
+    f b b c d b b b c d b b b c d f
+    f d b c d d d b c d d d b c d f
+    f c c c c c c c c c c c c c c f
+    f c c c c c c c c c c c c c c f
+    f f f f f f f f f f f f f f f f
+`
 
 let diamondImgLiteral = img`
         . . . . . . 9 9 . . . . . . .
@@ -184,328 +174,376 @@ let diamondImgLiteral = img`
         . . . . . . . . . . . . . . .
     `
 
-/** Draws an expressive, shiny RPG-style diamond crystal */
-function makeDiamond(): Image {
-    return diamondImgLiteral
-}
+function makeDiamond(): Image { return diamondImgLiteral }
 
-function makeWood(): Image {
-    let im = image.create(16, 16)
-    im.fill(14)
-    im.drawRect(0, 0, 16, 16, 15)
-    im.drawLine(4, 0, 4, 15, 4)
-    im.drawLine(10, 0, 10, 15, 4)
-    im.drawLine(6, 2, 8, 2, 4)
-    im.drawLine(2, 7, 5, 7, 4)
-    im.drawLine(9, 11, 13, 11, 4)
-    return im
-}
+let woodImgLiteral = img`
+    f f f f 4 f f f f f 4 f f f f f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e 4 4 4 e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e 4 4 4 4 e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e 4 4 4 4 4 e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f e e e 4 e e e e e 4 e e e e f
+    f f f f 4 f f f f f 4 f f f f f
+`
+
+let boneImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f d d d d d d d d e d d d d d f
+    f d e d d d d d d d d d d d d f
+    f d d d d d 1 1 1 1 d d d e d f
+    f d d d d 1 1 f f 1 1 d d d d f
+    f d d d d d 1 1 1 1 d d d d d f
+    f d d d d d 1 f f 1 d d d d d f
+    f d d d d d d d d d d d d d d f
+    f d d 1 1 d d d d d d 1 1 d d f
+    f d d d d 1 1 d d 1 1 d d d d f
+    f d d d d d d 1 1 d d d d d d f
+    f d d d d d d 1 1 d d d d d d f
+    f e d d d 1 1 d d 1 1 d d d d f
+    f d d 1 1 d d d d d d 1 1 d d f
+    f d d d d d d d d d d d d d d f
+    f f f f f f f f f f f f f f f f
+`
+
+let ironOreImgLiteral = img`
+    f f f f f f f f b f f f f f f f
+    f c c c c c c c b c c c c c c f
+    f c 4 4 4 c c c b c c c c c c f
+    f c 4 e 4 c c c b c 4 e 4 c c f
+    f c 4 4 4 c c c b c 4 4 4 c c f
+    f c c c c c c c b c c c c c c f
+    f c c c c c c c b c c c c c c f
+    b b b b b b b b b b b b b b b b
+    f c c c b c c c c c c c c c c f
+    f c c c b c c c c c c c c c c f
+    f c c c b 4 4 4 4 c c c c c c f
+    f c c c b 4 e e 4 c c c 4 4 c f
+    f c c c b 4 4 4 4 c c c 4 4 c f
+    f c c c b c c c c c c c c c c f
+    f c c c b c c c c c c c c c c f
+    f f f f b f f f f f f f f f f f
+`
+
+let bricksImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f 4 4 f 4 4 4 4 4 4 4 f 4 4 4 f
+    f 4 4 f 4 4 4 4 4 4 4 f 4 4 4 f
+    f f f f f f f f f f f f f f f f
+    f 4 4 4 4 4 4 f 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 f 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 f 4 4 4 4 4 4 4 f
+    f f f f f f f f f f f f f f f f
+    f 4 4 f 4 4 4 4 4 4 4 f 4 4 4 f
+    f 4 4 f 4 4 4 4 4 4 4 f 4 4 4 f
+    f 4 4 f 4 4 4 4 4 4 4 f 4 4 4 f
+    f f f f f f f f f f f f f f f f
+    f 4 4 4 4 4 4 f 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 f 4 4 4 4 4 4 4 f
+    f 4 4 4 4 4 4 f 4 4 4 4 4 4 4 f
+    f f f f f f f f f f f f f f f f
+`
+
+let stoneBlockImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f c c c c c c c c c c c c c c f
+    f c d d d d d d d d d d d d c f
+    f c d c c c c c c c c c c b c f
+    f c d c d d d d d d d d c b c f
+    f c d c d c c c c c c b c b c f
+    f c d c d c c c c c c b c b c f
+    f c d c d c c b c c c b c b c f
+    f c d c d c c c d c c b c b c f
+    f c d c d c c c c c c b c b c f
+    f c d c d c c c c c c b c b c f
+    f c d c d b b b b b b b c b c f
+    f c d c c c c c c c c c c b c f
+    f c d b b b b b b b b b b b c f
+    f c c c c c c c c c c c c c c f
+    f f f f f f f f f f f f f f f f
+`
+
+let timberImgLiteral = img`
+    f f 4 4 4 f f f f f f f f f f f
+    f 4 e e e 4 e 4 4 4 4 4 4 4 4 f
+    f 4 e e e 4 e e e e e e e e e f
+    f 4 e e e 4 e 4 4 4 4 4 4 4 4 f
+    f e 4 4 4 e e e e e e e e e e f
+    f f 4 4 4 f f f f f f f f f f f
+    f 4 e e e 4 e e e e e e e e e f
+    f 4 e e e 4 e 4 4 4 4 4 4 4 4 f
+    f 4 e e e 4 e e e e e e e e e f
+    f e 4 4 4 e e e e e e e e e e f
+    f f f f f f f f f f f f f f f f
+    f e 4 4 4 e e e e e e e e e e f
+    f 4 e e e 4 e 4 4 4 4 4 4 4 4 f
+    f 4 e e e 4 e e e e e e e e e f
+    f 4 e e e 4 e 4 4 4 4 4 4 4 4 f
+    f f 4 4 4 f f f f f f f f f f f
+`
+
+let bridgeImgLiteral = img`
+    e e e e e e e e e e e e e e e e
+    e 4 e e e e e e e e e e e e 4 e
+    e e e 4 4 4 4 e e e e e e e e e
+    f f f f f f f f f f f f f f f f
+    e e e e e e e e e e e e e e e e
+    e 4 e e e e e e e e e e e e 4 e
+    e e e e e e e e e 4 4 4 4 e e e
+    f f f f f f f f f f f f f f f f
+    e e e e e e e e e e e e e e e e
+    e 4 e e e e e e e e e e e e 4 e
+    e e e e 4 4 4 4 4 e e e e e e e
+    f f f f f f f f f f f f f f f f
+    e e e e e e e e e e e e e e e e
+    e 4 e e e e e e e e e e e e 4 e
+    e e e e e e e e 4 4 4 4 e e e e
+    f f f f f f f f f f f f f f f f
+`
+
+let tallGrassImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f 7 7 7 7 7 7 7 7 7 7 7 7 7 7 f
+    f 7 7 7 7 7 7 7 7 7 7 7 7 7 7 f
+    f 7 7 7 7 7 7 7 7 7 7 a 7 7 7 f
+    f 7 7 7 7 a 7 7 7 7 7 6 7 7 7 f
+    f 7 7 7 7 6 7 7 a 7 7 6 7 7 7 f
+    f 7 a 7 7 6 7 7 6 7 7 6 7 7 a f
+    f 7 6 7 7 6 7 7 6 7 7 6 7 7 6 f
+    f 7 6 7 7 6 7 7 6 7 7 6 7 7 6 f
+    f 7 6 7 7 6 7 7 6 7 7 6 7 7 6 f
+    f 7 6 7 7 6 7 7 6 7 7 6 7 7 6 f
+    f 7 6 7 7 6 7 7 6 7 7 6 7 7 6 f
+    f 7 6 7 7 6 7 7 6 7 7 6 7 7 6 f
+    f 4 6 7 4 6 7 4 6 7 4 6 7 4 6 f
+    f 4 4 4 4 4 4 4 4 4 4 4 4 4 4 f
+    f f f f f f f f f f f f f f f f
+`
+
+let hayImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f 5 d 5 4 e 5 d 5 5 5 4 5 d 5 f
+    f e 5 5 4 5 e 5 5 5 5 4 e 5 5 f
+    f 5 e 5 4 5 5 e 5 5 5 4 5 e 5 f
+    f 5 5 e 4 5 5 5 e 5 5 4 5 5 e f
+    f 5 5 5 4 5 5 5 5 e 5 4 5 5 5 f
+    f 5 5 5 4 5 5 5 5 5 e 4 5 5 5 f
+    f 5 5 5 4 e 5 5 5 5 5 4 5 5 5 f
+    f e 5 5 4 5 e 5 5 5 5 4 e 5 5 f
+    f 5 e 5 4 5 5 e 5 5 5 4 5 e 5 f
+    f 5 5 e 4 5 5 5 e 5 5 4 5 5 e f
+    f 5 5 5 4 5 5 5 5 e 5 4 5 5 5 f
+    f 5 5 5 4 5 5 5 5 5 e 4 5 5 5 f
+    f 5 5 5 4 5 5 5 5 5 5 4 5 5 5 f
+    f 5 5 d 4 5 5 5 d 5 5 4 5 5 d f
+    f f f f f f f f f f f f f f f f
+`
+
+let caveEntranceImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f d d d d d d d d d d d d d d f
+    f d c c c c c c c c c c c c b f
+    f d c c c c b f f b c c c c b f
+    f d c c c b f f f f b c c c b f
+    f d c c b f f f f f f b c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d c c f f f f f f f f c c b f
+    f d b b f f f f f f f f b b b f
+    f f f f f f f f f f f f f f f f
+`
+
+let dungeonWallImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f f f f f f f f f f f f f f f f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f f f f f f f f f f f f f f f f
+`
+
+let keyHoleImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b b f b b b b b b f
+    f b b b b b b f f b b b b b b f
+    f b b b b b b f f b b b b b b f
+    f f f f f f f f f f f f f f f f
+    f b b b f b f f f f b b f b b f
+    f b b b f b f f f f b b f b b f
+    f b b b f b f f f f b b f b b f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f b b b f b b b b b b b f b b f
+    f f f f f f f f f f f f f f f f
+`
+
+let dungeonFloorImgLiteral = img`
+    c c c c c c c c c c c c c c c c
+    c 1 1 1 1 1 1 1 c 1 1 1 1 1 1 c
+    c d d d d d d d c d d d d d d c
+    c d d d d d d d c d d d d d d c
+    c d d c d d d d c d d d d d d c
+    c d d d c d d d c d d d d d d c
+    c d d d d d d d c d d d d d d c
+    c d d d d d d d c d d d d d d c
+    c c c c c c c c c c c c c c c c
+    c 1 1 1 1 1 1 1 c 1 1 1 1 1 1 c
+    c d d d d d d d c d d d d d d c
+    c d d d d d d d c d d d d d d c
+    c d d d d d d d c d d c d d d c
+    c d d d d d d d c d d d d d d c
+    c d d d d d d d c d d d d d d c
+    c c c c c c c c c c c c c c c c
+`
+
+let keyImgLiteral = img`
+    c c c c c c c c c c c c c c c c
+    c 1 1 1 1 1 1 5 5 5 1 1 1 1 1 c
+    c d d d d d 5 d c d 5 d d d d c
+    c d d d d 5 d d c d d 5 d d d c
+    c d d c d 5 d 5 e 5 d 5 d d d c
+    c d d d c 5 d d c d d 5 d d d c
+    c d d d d d 5 d c d 5 d d d d c
+    c d d d d d d 5 e 5 d d d d d c
+    c c c c c c c c 5 c c c c c c c
+    c 1 1 1 1 1 1 1 5 1 1 1 1 1 1 c
+    c d d d d d d d 5 d d d d d d c
+    c d d d d d d d 5 5 5 d d d d c
+    c d d d d d d d 5 d 5 c d d d c
+    c d d d d d d d 5 5 5 5 d d d c
+    c d d d d d d d c d d 5 d d d c
+    c c c c c c c c c c c c c c c c
+`
+
+let waterImgLiteral = img`
+    8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8
+    8 8 8 8 1 8 8 8 8 8 8 8 8 8 8 8
+    8 8 9 9 9 9 8 8 8 8 8 8 8 8 8 8
+    9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9
+    8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8
+    8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8
+    8 8 8 8 8 8 8 8 8 8 9 9 9 9 9 8
+    6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6
+    8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8
+    8 8 8 1 8 8 8 8 8 8 8 8 8 8 8 8
+    8 9 9 9 9 9 9 8 8 8 8 8 8 8 8 8
+    9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9
+    8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8
+    8 8 8 8 8 8 8 8 8 8 8 8 8 1 8 8
+    8 8 8 8 8 8 8 8 8 8 8 9 9 9 9 9
+    8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8
+`
+
+let campfire0ImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e 5 e e e e e e e f
+    f e e e e e e 5 5 e e e e e e f
+    f e e e e e 5 5 5 e e e e e e f
+    f e e e e e 4 4 5 5 e e e e e f
+    f e e e e e 4 4 5 4 e e e e e f
+    f e e e e 2 4 4 4 4 2 e e e e f
+    f e e e e 2 4 4 4 4 2 e e e e f
+    f e e e e 2 2 2 2 2 2 e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e 4 4 4 4 4 4 4 4 4 4 e e f
+    f e e e e e e e e e e e e e e f
+    f f f f f f f f f f f f f f f f
+`
+
+let campfire1ImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e 5 e e e e e e f
+    f e e e e e e 5 5 e e e e e e f
+    f e e e e e e 5 5 5 e e e e e f
+    f e e e e e 5 5 4 4 e e e e e f
+    f e e e e e 4 5 4 4 e e e e e f
+    f e e e e 2 4 4 4 4 2 e e e e f
+    f e e e e 2 4 4 4 4 2 e e e e f
+    f e e e e 2 2 2 2 2 2 e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e 4 4 4 4 4 4 4 4 4 4 e e f
+    f e e e e e e e e e e e e e e f
+    f f f f f f f f f f f f f f f f
+`
+
+let campfire2ImgLiteral = img`
+    f f f f f f f f f f f f f f f f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e e e e 5 5 e e e e e e e f
+    f e e e e e e 5 5 5 e e e e e f
+    f e e e e e 4 5 5 4 e e e e e f
+    f e e e e e 4 4 5 4 e e e e e f
+    f e e e e 2 4 4 4 4 2 e e e e f
+    f e e e e 2 4 4 4 4 2 e e e e f
+    f e e e e 2 2 2 2 2 2 e e e e f
+    f e e e e e e e e e e e e e e f
+    f e e 4 4 4 4 4 4 4 4 4 4 e e f
+    f e e e e e e e e e e e e e e f
+    f f f f f f f f f f f f f f f f
+`
 
 
-function makeBone(): Image {
-    let im = image.create(16, 16)
-    im.fill(13)  // Tan/sandy ground
-    im.drawRect(0, 0, 16, 16, 15)
-    // Scattered flecks for ground texture
-    im.setPixel(2, 2, 14)
-    im.setPixel(9, 1, 14)
-    im.setPixel(13, 3, 14)
-    im.setPixel(1, 12, 14)
-    im.setPixel(12, 13, 14)
-    // Skull (top center)
-    im.fillRect(6, 3, 4, 4, 1)  // Skull body
-    im.setPixel(5, 4, 1)
-    im.setPixel(10, 4, 1)
-    im.setPixel(7, 4, 15)  // Left eye
-    im.setPixel(8, 4, 15)  // Right eye
-    im.setPixel(7, 6, 15)  // Mouth left
-    im.setPixel(8, 6, 15)  // Mouth right
-    // Crossbones below skull
-    im.drawLine(4, 8, 11, 13, 1)
-    im.drawLine(11, 8, 4, 13, 1)
-    // Bone knobs at ends
-    im.setPixel(3, 8, 1)
-    im.setPixel(12, 8, 1)
-    im.setPixel(3, 13, 1)
-    im.setPixel(12, 13, 1)
-    return im
-}
-
-function makeIronOre(): Image {
-    let im = image.create(16, 16)
-    im.fill(12)  // Grey stone base
-    im.drawRect(0, 0, 16, 16, 15)
-    // Stone block joints (like stone tile)
-    im.drawLine(0, 7, 15, 7, 11)
-    im.drawLine(8, 0, 8, 7, 11)
-    im.drawLine(4, 7, 4, 15, 11)
-    // Embedded iron ore veins (rust orange/brown)
-    im.fillRect(2, 2, 3, 3, 4)
-    im.setPixel(3, 3, 14)  // Bright center
-    im.fillRect(10, 3, 3, 2, 4)
-    im.setPixel(11, 3, 14)
-    im.fillRect(5, 10, 4, 3, 4)
-    im.setPixel(6, 11, 14)
-    im.setPixel(7, 11, 14)
-    im.fillRect(12, 11, 2, 2, 4)
-    return im
-}
-
-function makeBricks(): Image {
-    let im = image.create(16, 16)
-    im.fill(4)
-    im.drawRect(0, 0, 16, 16, 15)
-    // Draw brick mortar lines
-    for (let y = 3; y < 16; y += 4) im.drawLine(0, y, 15, y, 15)
-    for (let x = 3; x < 16; x += 8) {
-        im.drawLine(x, 0, x, 3, 15)
-        im.drawLine(x, 8, x, 11, 15)
-    }
-    for (let x = 7; x < 16; x += 8) {
-        im.drawLine(x, 4, x, 7, 15)
-        im.drawLine(x, 12, x, 15, 15)
-    }
-    return im
-}
-
-function makeStoneBlock(): Image {
-    let im = image.create(16, 16)
-    im.fill(12)  // Grey
-    im.drawRect(0, 0, 16, 16, 15)
-    // Chiseled bevel - highlight top/left, shadow bottom/right
-    im.drawLine(2, 2, 13, 2, 13)  // Top highlight
-    im.drawLine(2, 2, 2, 13, 13)  // Left highlight
-    im.drawLine(13, 3, 13, 13, 11)  // Right shadow
-    im.drawLine(3, 13, 13, 13, 11)  // Bottom shadow
-    // Inner stone face
-    im.fillRect(4, 4, 8, 8, 12)
-    im.drawLine(4, 4, 11, 4, 13)  // Inner highlight
-    im.drawLine(4, 4, 4, 11, 13)
-    im.drawLine(11, 5, 11, 11, 11)  // Inner shadow
-    im.drawLine(5, 11, 11, 11, 11)
-    // Center detail
-    im.setPixel(7, 7, 11)
-    im.setPixel(8, 8, 13)
-    return im
-}
-
-function makeTimber(): Image {
-    let im = image.create(16, 16)
-    im.fill(14)  // Light brown
-    im.drawRect(0, 0, 16, 16, 15)
-    // Stacked logs - horizontal dividers
-    im.drawLine(0, 5, 15, 5, 15)
-    im.drawLine(0, 10, 15, 10, 15)
-    // Log cross-sections on left face (3 logs)
-    im.drawCircle(3, 2, 2, 4)
-    im.setPixel(3, 2, 14)
-    im.drawCircle(3, 7, 2, 4)
-    im.setPixel(3, 7, 14)
-    im.drawCircle(3, 13, 2, 4)
-    im.setPixel(3, 13, 14)
-    // Wood grain lines
-    im.drawLine(7, 1, 14, 1, 4)
-    im.drawLine(7, 3, 14, 3, 4)
-    im.drawLine(7, 7, 14, 7, 4)
-    im.drawLine(7, 12, 14, 12, 4)
-    im.drawLine(7, 14, 14, 14, 4)
-    return im
-}
-
-function makeBridge(): Image {
-    let im = image.create(16, 16)
-    im.fill(14)
-    im.drawLine(0, 0, 15, 0, 15)
-    im.drawLine(0, 4, 15, 4, 15)
-    im.drawLine(0, 8, 15, 8, 15)
-    im.drawLine(0, 12, 15, 12, 15)
-    im.drawLine(0, 15, 15, 15, 15)
-    im.setPixel(3, 2, 4)
-    im.setPixel(12, 2, 4)
-    im.setPixel(6, 6, 4)
-    im.setPixel(9, 10, 4)
-    im.setPixel(2, 14, 4)
-    im.setPixel(13, 14, 4)
-    return im
-}
-
-function makeTallGrass(): Image {
-    let im = image.create(16, 16)
-    im.fill(7)  // Dark green base
-    im.drawRect(0, 0, 16, 16, 15)
-    // Ground soil at bottom
-    im.fillRect(1, 13, 14, 2, 4)
-    // Grass blades of varying height
-    im.drawLine(2, 13, 2, 6, 6)
-    im.drawLine(3, 13, 3, 8, 7)
-    im.drawLine(5, 13, 5, 4, 6)
-    im.drawLine(6, 13, 6, 7, 7)
-    im.drawLine(8, 13, 8, 5, 6)
-    im.drawLine(9, 13, 9, 9, 7)
-    im.drawLine(11, 13, 11, 3, 6)
-    im.drawLine(12, 13, 12, 7, 7)
-    im.drawLine(14, 13, 14, 6, 6)
-    // Bright tips
-    im.setPixel(5, 4, 10)
-    im.setPixel(11, 3, 10)
-    im.setPixel(2, 6, 10)
-    im.setPixel(8, 5, 10)
-    im.setPixel(14, 6, 10)
-    return im
-}
-
-function makeHay(): Image {
-    let im = image.create(16, 16)
-    im.fill(5)  // Yellow/straw base
-    im.drawRect(0, 0, 16, 16, 15)
-    // Binding ropes (darker brown)
-    im.drawLine(4, 1, 4, 14, 4)
-    im.drawLine(11, 1, 11, 14, 4)
-    // Straw texture - diagonal strands
-    im.drawLine(1, 2, 3, 4, 14)
-    im.drawLine(5, 1, 10, 6, 14)
-    im.drawLine(12, 2, 14, 4, 14)
-    im.drawLine(1, 8, 3, 10, 14)
-    im.drawLine(5, 7, 10, 12, 14)
-    im.drawLine(12, 8, 14, 10, 14)
-    // Straw ends poking out top/bottom
-    im.setPixel(2, 1, 13)
-    im.setPixel(7, 1, 13)
-    im.setPixel(13, 1, 13)
-    im.setPixel(3, 14, 13)
-    im.setPixel(8, 14, 13)
-    im.setPixel(14, 14, 13)
-    return im
-}
-
-function makeCaveEntrance(): Image {
-    let im = image.create(16, 16)
-    im.fill(12)  // Grey stone surround
-    im.drawRect(0, 0, 16, 16, 15)
-    // Stone highlights
-    im.drawLine(1, 1, 14, 1, 13)
-    im.drawLine(1, 1, 1, 14, 13)
-    im.drawLine(14, 2, 14, 14, 11)
-    im.drawLine(2, 14, 14, 14, 11)
-    // Dark cave opening - gothic arch
-    im.fillRect(4, 6, 8, 10, 15)
-    im.fillRect(5, 4, 6, 2, 15)
-    im.fillRect(6, 3, 4, 1, 15)
-    // Archway stone border
-    im.setPixel(4, 5, 11)
-    im.setPixel(11, 5, 11)
-    im.setPixel(5, 4, 11)
-    im.setPixel(10, 4, 11)
-    im.setPixel(6, 3, 11)
-    im.setPixel(9, 3, 11)
-    return im
-}
-
-function makeDungeonWall(): Image {
-    let im = image.create(16, 16)
-    im.fill(11) // Dark grey
-    im.drawRect(0, 0, 16, 16, 15)
-    im.drawLine(0, 8, 15, 8, 15)
-    im.drawLine(8, 0, 8, 8, 15)
-    im.drawLine(4, 8, 4, 15, 15)
-    im.drawLine(12, 8, 12, 15, 15)
-    return im
-}
-
-function makeKeyHole(): Image {
-    let im = makeDungeonWall()
-    im.fillRect(7, 6, 2, 3, 15)
-    im.fillRect(6, 9, 4, 3, 15)
-    return im
-}
-
-function makeDungeonFloor(): Image {
-    let im = image.create(16, 16)
-    im.fill(12)  // Grey flagstone
-    im.drawRect(0, 0, 16, 16, 11)  // Dark-grey border
-    // Floor tile joints
-    im.drawLine(8, 0, 8, 15, 11)
-    im.drawLine(0, 8, 15, 8, 11)
-    // Highlight edges (top-left of each quad)
-    im.drawLine(1, 1, 7, 1, 1)
-    im.drawLine(9, 1, 14, 1, 1)
-    im.drawLine(1, 9, 7, 9, 1)
-    im.drawLine(9, 9, 14, 9, 1)
-    // Subtle cracks
-    im.setPixel(3, 4, 11)
-    im.setPixel(4, 5, 11)
-    im.setPixel(11, 12, 11)
-    return im
-}
-
-function makeKey(): Image {
-    let im = makeDungeonFloor()
-    // Classic golden RPG key
-    // Key bow (round top)
-    im.drawCircle(8, 4, 3, 5)
-    im.setPixel(8, 4, 14)  // Center of bow
-    im.setPixel(7, 4, 5)
-    im.setPixel(9, 4, 5)
-    // Key shaft
-    im.drawLine(8, 7, 8, 13, 5)
-    im.setPixel(8, 7, 14)  // Shaft highlight
-    // Key teeth
-    im.drawLine(8, 11, 10, 11, 5)
-    im.drawLine(10, 11, 10, 12, 5)
-    im.drawLine(8, 13, 11, 13, 5)
-    im.drawLine(11, 13, 11, 14, 5)
-    return im
-}
-
-function makeWater(): Image {
-    let im = image.create(16, 16)
-    im.fill(8)  // Blue base
-    // Wave ripple bands
-    im.drawLine(0, 3, 15, 3, 9)
-    im.drawLine(0, 7, 15, 7, 6)
-    im.drawLine(0, 11, 15, 11, 9)
-    // Staggered wave crests
-    im.drawLine(2, 2, 5, 2, 9)
-    im.drawLine(10, 6, 14, 6, 9)
-    im.drawLine(1, 10, 6, 10, 9)
-    im.drawLine(11, 14, 15, 14, 9)
-    // Sparkle highlights
-    im.setPixel(4, 1, 1)
-    im.setPixel(3, 9, 1)
-    im.setPixel(13, 13, 1)
-    return im
-}
-
+function makeDirt(): Image { return dirtImgLiteral }
+function makeStone(): Image { return stoneImgLiteral }
+function makeBedrock(): Image { return bedrockImgLiteral }
+function makeSpikes(): Image { return spikesImgLiteral }
+function makeWood(): Image { return woodImgLiteral }
+function makeBone(): Image { return boneImgLiteral }
+function makeIronOre(): Image { return ironOreImgLiteral }
+function makeBricks(): Image { return bricksImgLiteral }
+function makeStoneBlock(): Image { return stoneBlockImgLiteral }
+function makeTimber(): Image { return timberImgLiteral }
+function makeBridge(): Image { return bridgeImgLiteral }
+function makeTallGrass(): Image { return tallGrassImgLiteral }
+function makeHay(): Image { return hayImgLiteral }
+function makeCaveEntrance(): Image { return caveEntranceImgLiteral }
+function makeDungeonWall(): Image { return dungeonWallImgLiteral }
+function makeKeyHole(): Image { return keyHoleImgLiteral }
+function makeDungeonFloor(): Image { return dungeonFloorImgLiteral }
+function makeKey(): Image { return keyImgLiteral }
+function makeWater(): Image { return waterImgLiteral }
 function makeCampfire(frame: number): Image {
-    let im = image.create(16, 16)
-    im.fill(14) // Dark base for ash/wood
-    im.drawRect(0, 0, 16, 16, 15) // Border
-    // Wood logs at the base
-    im.drawLine(3, 13, 12, 13, 4)
-    im.drawLine(4, 12, 11, 12, 14)
-    // Fire base (red)
-    im.fillRect(5, 9, 6, 3, 2)
-    // Fire core (orange)
-    im.fillRect(6, 7, 4, 4, 4)
-    // Fire tips (yellow)
-    if (frame == 0) {
-        im.drawLine(7, 4, 7, 6, 5)
-        im.drawLine(8, 5, 8, 8, 5)
-        im.setPixel(6, 6, 5)
-        im.setPixel(9, 7, 5)
-    } else if (frame == 1) {
-        im.drawLine(8, 4, 8, 6, 5)
-        im.drawLine(7, 5, 7, 8, 5)
-        im.setPixel(9, 6, 5)
-        im.setPixel(6, 7, 5)
-    } else {
-        im.drawLine(7, 5, 7, 7, 5)
-        im.drawLine(8, 6, 8, 8, 5)
-        im.setPixel(6, 5, 5)
-        im.setPixel(9, 6, 5)
-    }
-    return im
+    if (frame == 0) return campfire0ImgLiteral;
+    if (frame == 1) return campfire1ImgLiteral;
+    return campfire2ImgLiteral;
 }
+
 
 /** Scales a 16x16 image down to 8x8 by sampling every 2nd pixel (nearest-neighbor). */
 function scaleDownHalf(source: Image): Image {

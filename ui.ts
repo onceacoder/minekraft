@@ -266,7 +266,7 @@ function drawObstaclesMenu(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    let labels = ["RIVERS", "SURVIVAL", "TOLLS", "KEY CRAWL", "FREEZING NIGHT"];
+    let labels = ["RIVERS", "SURVIVAL", "TOLLS", "KEY CRAWL", "CAMP FIRE"];
     let toggles = [optRiver, optSurvive, optToll, optDungeon, optFreeze];
     
     for (let i = 0; i < 5; i++) {
@@ -423,24 +423,36 @@ function drawLoading(target: Image) {
     menuView.fill(0)
     let y0 = 0 - menuScrollY;
 
-    if (loadChoices.length == 0) {
-        menuView.print("NO SAVES", 40, y0 + 20, 1)
-    } else {
-        for (let i = 0; i < loadChoices.length; i++) {
-            let iy = y0 + i * itemHeight;
-            if (iy > -itemHeight && iy < 60) {
-                if (i == loadChoicePos) {
-                    menuView.print("> " + loadChoices[i], 40, iy, 2)
-                } else {
-                    menuView.print("  " + loadChoices[i], 40, iy, 1)
-                }
+    for (let i = 0; i < loadChoices.length; i++) {
+        let iy = y0 + i * itemHeight;
+        if (iy > -itemHeight && iy < 60) {
+            if (i == loadChoicePos) {
+                menuView.print("> " + loadChoices[i], 40, iy, 2)
+            } else {
+                menuView.print("  " + loadChoices[i], 40, iy, 1)
             }
         }
+    }
+    if (loadChoices.length == 1) {
+        menuView.print("NO SAVES", 40, y0 + 20, 1)
     }
 
     target.drawTransparentImage(menuView, 10, 32)
     drawScrollIndicator(target, 150, 32, 60, loadChoices.length * itemHeight, menuScrollY, 1)
-    target.print("A:Load  B:Cancel", 18, 105, 1)
+    
+    if (deleteConfirmActive && loadChoices.length > 0 && loadChoicePos < loadChoices.length - 1) {
+        target.fillRect(15, 30, 130, 60, 15)
+        target.drawRect(15, 30, 130, 60, 2)
+        printBold(target, "DELETE SAVE?", 40, 38, 2)
+        target.print("Delete save " + loadChoices[loadChoicePos] + "?", 24, 54, 1)
+        target.print("A:Confirm  B:Cancel", 22, 72, 1)
+    } else {
+        if (loadChoices.length > 1 && loadChoicePos < loadChoices.length - 1) {
+            target.print("A:Load  B:Delete", 25, 105, 1)
+        } else {
+            target.print("A:Select  B:Back", 25, 105, 1)
+        }
+    }
 }
 
 function drawVictory(target: Image) {

@@ -95,37 +95,39 @@ function updateObstacles() {
                 }
                 showBanner("SURVIVED THE NIGHT!")
                 music.playTone(440, 500)
-            }
-        }
+            } else {
+                let isWarm = false
+                // Iterate over campfires to check distance
+                for (let i = 0; i < campfireCols.length; i++) {
+                    let cc = campfireCols[i]
+                    let cr = campfireRows[i]
+                    let distSq = (player.x / 16 - cc) * (player.x / 16 - cc) + (player.y / 16 - cr) * (player.y / 16 - cr)
+                    if (distSq < 16) { // Within 4 tiles
+                        isWarm = true
+                    }
+                }
 
-        let isWarm = false
-        // Iterate over campfires to check distance
-        for (let i = 0; i < campfireCols.length; i++) {
-            let cc = campfireCols[i]
-            let cr = campfireRows[i]
-            let distSq = (player.x / 16 - cc) * (player.x / 16 - cc) + (player.y / 16 - cr) * (player.y / 16 - cr)
-            if (distSq < 16) { // Within 4 tiles
-                isWarm = true
-            }
-        }
-
-        if (isWarm) {
-            freezeMeter += 10
-            if (freezeMeter > FREEZE_METER_MAX) freezeMeter = FREEZE_METER_MAX
-        } else {
-            freezeMeter -= 2
-            if (freezeMeter <= 0) {
-                freezeMeter = 0
-                if (game.runtime() % 1000 < 33 && !invincible) {
-                    info.changeLifeBy(-1)
-                    player.startEffect(effects.ashes, 200)
-                    music.playTone(150, 100)
-                    invincible = true
-                    // Hack to bypass setTimeout closure context issues in STS
-                    control.runInParallel(function() {
-                        pause(INVINCIBILITY_MS)
-                        invincible = false
-                    })
+                if (isWarm) {
+                    freezeMeter += 10
+                    if (freezeMeter > FREEZE_METER_MAX) freezeMeter = FREEZE_METER_MAX
+                } else {
+                    if (game.runtime() % 99 < 33) {
+                        freezeMeter -= 1
+                    }
+                    if (freezeMeter <= 0) {
+                        freezeMeter = 0
+                        if (game.runtime() % 1000 < 33 && !invincible) {
+                            info.changeLifeBy(-1)
+                            player.startEffect(effects.ashes, 200)
+                            music.playTone(150, 100)
+                            invincible = true
+                            // Hack to bypass setTimeout closure context issues in STS
+                            control.runInParallel(function() {
+                                pause(INVINCIBILITY_MS)
+                                invincible = false
+                            })
+                        }
+                    }
                 }
             }
         }
@@ -230,7 +232,7 @@ function renderObstacleUI(target: Image, w: number) {
 }
 
 function drawFreezeMeter(target: Image) {
-    if (activeObstacle != OBSTACLE_FREEZE) return
+    if (activeObstacle != OBSTACLE_FREEZE || survivalTimer <= 0) return
     
     let w = 40
     let h = 4
@@ -253,7 +255,7 @@ function drawFreezeMeter(target: Image) {
 // Cached night overlay
 let nightOverlay: Image = null
 function drawNightOverlay(target: Image) {
-    if (activeObstacle != OBSTACLE_FREEZE) return
+    if (activeObstacle != OBSTACLE_FREEZE || survivalTimer <= 0) return
     
     if (!nightOverlay) {
         nightOverlay = image.create(160, 120)

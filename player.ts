@@ -482,7 +482,7 @@ function performLongAction() {
                 
                 for (let i = 0; i < campfireCols.length; i++) {
                     if (campfireCols[i] == frontCol && campfireRows[i] == frontRow) {
-                        let fuelAmt = (selectedMat == MAT_WOOD) ? 4500 : 1500
+                        let fuelAmt = (selectedMat == MAT_WOOD) ? 4500 : 750
                         campfireHealths[i] += fuelAmt
                         break
                     }
@@ -525,6 +525,7 @@ function navigateMenu(dir: number) {
         return
     }
     if (gameState == LOADING) {
+        if (deleteConfirmActive) return
         if (loadChoices.length > 0) {
             loadChoicePos = (loadChoicePos + dir + loadChoices.length) % loadChoices.length
         }
@@ -592,57 +593,28 @@ function adjustSetting(dir: number) {
     }
 }
 
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState != PLAYING || inventoryOpen) {
-        navigateMenu(-1)
-        return
-    }
-    if (gameState == PLAYING && !inventoryOpen) {
-        facingDx = 0
-        facingDy = -1
-    }
-})
-
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState != PLAYING || inventoryOpen) {
-        navigateMenu(1)
-        return
-    }
-    if (gameState == PLAYING && !inventoryOpen) {
-        facingDx = 0
-        facingDy = 1
-    }
-})
-
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState != PLAYING || inventoryOpen) {
-        adjustSetting(-1)
-        return
-    }
-    if (gameState == PLAYING && !inventoryOpen) {
-        facingDx = -1
-        facingDy = 0
-    }
-})
-
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (gameState != PLAYING || inventoryOpen) {
-        adjustSetting(1)
-        return
-    }
-    if (gameState == PLAYING && !inventoryOpen) {
-        facingDx = 1
-        facingDy = 0
-    }
-})
+function bindDir(btn: controller.Button, dx: number, dy: number, menuDir: number, isSetting: boolean) {
+    btn.onEvent(ControllerButtonEvent.Pressed, function () {
+        if (gameState != PLAYING || inventoryOpen) {
+            if (isSetting) adjustSetting(menuDir)
+            else navigateMenu(menuDir)
+        } else {
+            facingDx = dx
+            facingDy = dy
+        }
+    })
+}
+bindDir(controller.up, 0, -1, -1, false)
+bindDir(controller.down, 0, 1, 1, false)
+bindDir(controller.left, -1, 0, -1, true)
+bindDir(controller.right, 1, 0, 1, true)
 
 // INSTANT ACTION TRIGGER
 
 let aPressStart = 0
 let aLongPressTriggered = false
-let aRepeatCount = 0
 
-controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+function handleAPressed() {
     if (gameState == VICTORY || gameState == GAMEOVER) {
         returnToTitleFromVictory()
         return
@@ -663,13 +635,11 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             menuScrollY = 0
         } else if (optionChoice == 3) {
             gameState = LOADING
-            loadChoices = []
-            for (let i = 1; i <= 3; i++) {
-                let svName = settings.readString("save_" + i + "_name")
-                if (svName && svName.length > 0) loadChoices.push(svName)
-            }
+            loadChoices = getSaveList()
+            loadChoices.push("< BACK")
             loadChoicePos = 0
             menuScrollY = 0
+            deleteConfirmActive = false
         }
         return
     }
@@ -695,11 +665,37 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         return
     }
 
+    if (gameState == SAVING) {
+        if (saveNamePos < 2) {
+            saveNamePos++
+        } else {
+            saveGame(getSaveName())
+        }
+        return
+    }
+
     if (gameState == LOADING) {
-        if (loadChoices.length > 0) {
-            let svName = loadChoices[loadChoicePos]
-            if (!loadGame(svName)) {
-                gameState = OPTIONS
+        if (deleteConfirmActive) {
+            if (loadChoices.length > 0 && loadChoicePos < loadChoices.length - 1) {
+                deleteSave(loadChoices[loadChoicePos])
+                loadChoices = getSaveList()
+                loadChoices.push("< BACK")
+                if (loadChoicePos >= loadChoices.length) {
+                    loadChoicePos = loadChoices.length - 1
+                }
+                music.playTone(150, 150)
+            }
+            deleteConfirmActive = false
+        } else {
+            if (loadChoices.length > 0) {
+                if (loadChoicePos == loadChoices.length - 1) {
+                    gameState = OPTIONS
+                } else {
+                    let svName = loadChoices[loadChoicePos]
+                    if (!loadGame(svName)) {
+                        gameState = OPTIONS
+                    }
+                }
             }
         }
         return
@@ -724,31 +720,27 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     aLongPressTriggered = false
-    aRepeatCount = 0
     controller.setRepeatDefault(300, 300)
-})
+}
+controller.A.onEvent(ControllerButtonEvent.Pressed, handleAPressed)
 
-controller.A.onEvent(ControllerButtonEvent.Repeated, function () {
-    if (gameState != PLAYING || inventoryOpen) return
-    aRepeatCount++
-    if (aRepeatCount >= 1 && !aLongPressTriggered) {
-        aLongPressTriggered = true
-        performLongAction()
-    }
-})
+function handleARepeated() {
+    if (gameState != PLAYING || inventoryOpen || aLongPressTriggered) return
+    aLongPressTriggered = true
+    performLongAction()
+}
+controller.A.onEvent(ControllerButtonEvent.Repeated, handleARepeated)
 
-controller.A.onEvent(ControllerButtonEvent.Released, function () {
+function handleAReleased() {
     if (gameState != PLAYING || inventoryOpen) return
     if (!aLongPressTriggered) {
         performShortAction()
     }
     aLongPressTriggered = false
-    aRepeatCount = 0
-})
+}
+controller.A.onEvent(ControllerButtonEvent.Released, handleAReleased)
 
-
-controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-
+function handleBPressed() {
     if (gameState == TOLL_DIALOG) {
         gameState = PLAYING
         // Bounce player so they don't immediately re-trigger
@@ -773,7 +765,15 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 
     if (gameState == LOADING) {
-        gameState = OPTIONS
+        if (deleteConfirmActive) {
+            deleteConfirmActive = false
+            music.playTone(120, 100)
+        } else if (loadChoices.length > 0 && loadChoicePos < loadChoices.length - 1) {
+            deleteConfirmActive = true
+            music.playTone(200, 100)
+        } else {
+            gameState = OPTIONS
+        }
         return
     }
 
@@ -809,7 +809,8 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
         resumeEnemies()
         resumePlayer()
     }
-})
+}
+controller.B.onEvent(ControllerButtonEvent.Pressed, handleBPressed)
 
 
 // --------------------------------------------------------------------------

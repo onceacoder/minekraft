@@ -46,6 +46,9 @@ MakeCode Arcade runs on severely constrained hardware (like the EF08247 microcon
 * **Scarecrows:** Added `SCARECROW` as a buildable structure (requires `SPIKES` + `HAY`). Scarecrows attract zombies within a radius, serving as an indestructible decoy to protect the player during combat.
 * **Healing Station:** Standing on `HAY` tiles for 2 seconds consumes the Hay and restores 1 HP. If the player plays on "Infinite Health", the HUD displays `INFINITY` and health counts are hidden.
 * **Procedural Sounds & Particle Timings:** Extracted and restored the procedural Game Over (`playDeathSound()`) and Victory (`playVictoryJingle()`) sounds from `audio_backup.txt`. Deferred the diamond `coolRadial` particle spray effect until the diamond marker actually spawns/appears on screen in Zombie Survival, Freezing Night, and River Crossing modes.
+* **Walkable Dock Bridges**: Placing wood logs (`MAT_WOOD`) on top of `WATER` now transforms the logs into a custom, rail-less, walkable `BRIDGE` tile instead of a solid `TIMBER` block. The bridge can be extended in all directions and is walkable by both the player and enemies. Harvesting/breaking the bridge segment restores the underlying water.
+* **Zombie Speed & Aggression Tuning**: Tuned down zombie difficulty/aggression by 10%: reduced speed across all levels by 10%, reduced detection/aggression range to 29 pixels, and relaxed spawn frequency to 5500ms.
+* **Unicode Infinity HUD**: Replaced custom rendering with direct Unicode infinity (`\u221E`) printing in options menus and HUD, precisely aligned to the bottom of the player's hearts.
 
 ### Remaining Risks
 
